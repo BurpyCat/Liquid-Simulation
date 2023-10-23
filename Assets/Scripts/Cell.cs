@@ -14,7 +14,8 @@ namespace VoxelWater
         Fall, //no collider or water under
         Empty, //volume is 0 and neighbouring blocks want to fill its place
         Pushed, //water is near an empty block that need sto be filled
-        Destroy //water is surrounded by empty blocks
+        Destroy, //water is surrounded by empty blocks
+        Merge //water on another water block ?and water not in excess?
     }
 
     public class Cell : MonoBehaviour
@@ -44,6 +45,8 @@ namespace VoxelWater
         public bool Lcoll;
         public bool Dcoll;
         public bool Ucoll;
+
+        public bool SurroundedEmpty;
 
         private int Delay;
         private MeshRenderer Mesh;
@@ -115,6 +118,9 @@ namespace VoxelWater
                 case CellState.Destroy:
                     Destroy();
                     break;
+                case CellState.Merge:
+                    Merge();
+                    break;
             }
 
             Grid.UpdateNeighbours(this);
@@ -128,19 +134,21 @@ namespace VoxelWater
             
             Cell emptyNeighbour = GetEmptyNeighbour();
             bool surroundedByEmpty = SurroundedByEmpty();
+            SurroundedEmpty = SurroundedByEmpty();
 
-            if(Volume == 0 && surroundedByEmpty)
-                State = CellState.Destroy;
+            //if (Volume == 0 && surroundedByEmpty)
+            //    State = CellState.Destroy;
+            //fix destroy
             if (Volume == 0)
                 State = CellState.Empty;
-            else if(surroundedByEmpty)
-                State = CellState.Pressured;
-            else if(emptyNeighbour != null)
-                State = CellState.Pushed;
             else if (down)
                 State = CellState.Fall;
+            else if (emptyNeighbour != null && (Bottom==null || Bottom.State != CellState.Still))
+                State = CellState.Pushed;
             else if (sum > 0 && Volume > 1)
                 State = CellState.Flow;
+            else if (Bottom != null && Bottom.State == CellState.Still && Grid.VolumeExcess==0)
+                State = CellState.Merge;
             else if (sum == 0 && Volume == 1)
                 State = CellState.Still;
             else if (sum == 0 && Volume > 1)
@@ -183,18 +191,30 @@ namespace VoxelWater
 
         private bool SurroundedByEmpty()
         {
-            if ((Bottom != null && Bottom.State != CellState.Empty) || Bottom == null)
+            if ((Bottom != null && Bottom.State != CellState.Empty))
                 return false;
-            if ((Front != null && Front.State != CellState.Empty) || Front == null)
+            if ((Front != null && Front.State != CellState.Empty))
                 return false;
-            if ((Right != null && Right.State != CellState.Empty) || Right == null)
+            if ((Right != null && Right.State != CellState.Empty))
                 return false;
-            if ((Back != null && Back.State != CellState.Empty) || Back == null)
+            if ((Back != null && Back.State != CellState.Empty))
                 return false;
-            if ((Left != null && Left.State != CellState.Empty) || Left == null)
+            if ((Left != null && Left.State != CellState.Empty))
                 return false;
+            if ((Top != null && Top.State != CellState.Empty))
+                return false;
+            //if ((Bottom != null && Bottom.State != CellState.Empty))
+            //    return false;
+            //if ((Top != null && Top.State != CellState.Empty))
+            //    return false;
 
             return true;
+        }
+
+        private void Merge()
+        {
+            Bottom.Volume += Volume;
+            Volume = 0;
         }
 
         private void Pushed()
