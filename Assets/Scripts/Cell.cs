@@ -20,13 +20,14 @@ namespace VoxelWater
 
     public class Cell : MonoBehaviour
     {
+        // main info
         public float X;
         public float Y;
         public float Z;
         public int Volume;
         public Grid Grid;
         public CellState State;
-
+        //public CellState OldState;
 
         // Neighboring cells
         public Cell Top;
@@ -36,6 +37,15 @@ namespace VoxelWater
         public Cell Front;
         public Cell Back;
 
+        //source
+        public bool CheckedSource = false;
+        public int Source = 0;
+
+        //extra
+        private int Delay = 0;
+        private MeshRenderer Mesh;
+
+        //debug
         public bool Rcoll;
         public bool Fcoll;
         public bool Bcoll;
@@ -44,9 +54,6 @@ namespace VoxelWater
         public bool Ucoll;
 
         public bool SurroundedEmpty;
-
-        private int Delay = 0;
-        private MeshRenderer Mesh;
 
         void Awake()
         {
@@ -71,6 +78,7 @@ namespace VoxelWater
             Grid.UpdateNeighbours(this);
 
             State = CellState.Flow;
+            //OldState = CellState.Flow;
         }
 
         // Update is called once per frame
@@ -223,7 +231,7 @@ namespace VoxelWater
 
         private void Fall()
         {
-            Grid.CreateCell(X + 0, Y - 1, Z + 0, Volume);
+            Grid.CreateCell(X + 0, Y - 1, Z + 0, Volume, Source);
             Volume = 0;
             Mesh.enabled = false;
         }
@@ -250,7 +258,6 @@ namespace VoxelWater
 
         private void Flow()
         {
-            //Grid.UpdateNeighbours(this);
             //flow to sides
             //(front, right, back, left)
             Vector4 sides = getSideColliders();
@@ -258,14 +265,12 @@ namespace VoxelWater
             int sum = (int)sides[0] + (int)sides[1] + (int)sides[2] + (int)sides[3];
             int volumeEach = 0;
             int residue = 0;
-            //Debug.Log(sum);
 
             if (sum != 0)
             {
                 volumeEach = (Volume - 1) / sum;
                 residue = (Volume - 1) % sum;
             }
-            //Debug.Log(volumeEach);
 
             //front
             if (sides[0] == 1)
@@ -277,7 +282,7 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Front = Grid.CreateCell(X + 1, Y + 0, Z + 0, volume);
+                    Front = Grid.CreateCell(X + 1, Y + 0, Z + 0, volume, Source+1);
             }
             //right
             if (sides[1] == 1)
@@ -289,7 +294,7 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Right = Grid.CreateCell(X + 0, Y + 0, Z - 1, volume);
+                    Right = Grid.CreateCell(X + 0, Y + 0, Z - 1, volume, Source + 2);
             }
             //back
             if (sides[2] == 1)
@@ -301,7 +306,7 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Back = Grid.CreateCell(X - 1, Y + 0, Z + 0, volume);
+                    Back = Grid.CreateCell(X - 1, Y + 0, Z + 0, volume, Source + 3);
             }
             //left
             if (sides[3] == 1)
@@ -313,10 +318,8 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume);
+                    Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume, Source + 4);
             }
-
-            //Grid.UpdateNeighbours(this);
 
             Volume = Volume - sum * volumeEach + residue;
         }

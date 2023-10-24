@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Unity.VisualScripting;
 
 namespace VoxelWater
 {
@@ -13,18 +14,23 @@ namespace VoxelWater
         public int Offset = 50;
         public int GridSize = 100;
 
+        //excess volume source
+        Dictionary<int, int> VolumeExcess2;
+
         void Awake()
         {
             Cells = new Cell[GridSize, GridSize, GridSize];
+            VolumeExcess2 = new Dictionary<int, int>();
         }
 
-        public Cell CreateCell(float x, float y, float z, int volume)
+        public Cell CreateCell(float x, float y, float z, int volume, int source)
         {
             GameObject newCell = Instantiate(Cube, transform);
             newCell.transform.position = new Vector3(x, y, z);
             Cell cellScript = newCell.GetComponent<Cell>();
             cellScript.Initiate();
             cellScript.Volume = volume;
+            cellScript.Source = source;
 
             return cellScript;
         }
@@ -64,6 +70,44 @@ namespace VoxelWater
             cell.Left = Cells[X, Y, Z + 1];
             //bottom
             cell.Bottom = Cells[X, Y-1, Z];
+            //top
+            cell.Top = Cells[X, Y + 1, Z];
+
+            if(cell.State==CellState.Still)
+                UpdateSources(cell);
+        }
+
+        private void UpdateSources(Cell cell)
+        {
+            if (cell.Front != null &&
+                (cell.Front.State == CellState.Still) &&
+                cell.Source < cell.Front.Source)
+                cell.Front.Source = cell.Source;
+            
+            if (cell.Right != null &&
+                (cell.Right.State == CellState.Still) &&
+                cell.Source < cell.Right.Source)
+                cell.Right.Source = cell.Source;
+            
+            if (cell.Back != null &&
+                (cell.Back.State == CellState.Still) &&
+                cell.Source < cell.Back.Source)
+                cell.Back.Source = cell.Source;
+            
+            if (cell.Left != null &&
+                (cell.Left.State == CellState.Still) &&
+                cell.Source < cell.Left.Source)
+                cell.Left.Source = cell.Source;
+            
+            if (cell.Top != null &&
+                (cell.Top.State == CellState.Still) &&
+                cell.Source < cell.Top.Source)
+                cell.Top.Source = cell.Source;
+
+            if (cell.Bottom != null &&
+                (cell.Bottom.State == CellState.Still) &&
+                cell.Source < cell.Bottom.Source)
+                cell.Bottom.Source = cell.Source;
         }
 
         public void DeleteCell(Cell cell)
