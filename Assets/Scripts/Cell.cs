@@ -23,9 +23,6 @@ namespace VoxelWater
         public float X;
         public float Y;
         public float Z;
-        public float Xgrid;
-        public float Ygrid;
-        public float Zgrid;
         public int Volume;
         public Grid Grid;
         public CellState State;
@@ -48,7 +45,7 @@ namespace VoxelWater
 
         public bool SurroundedEmpty;
 
-        private int Delay;
+        private int Delay = 0;
         private MeshRenderer Mesh;
 
         void Awake()
@@ -69,15 +66,11 @@ namespace VoxelWater
             X = transform.position.x;
             Y = transform.position.y;
             Z = transform.position.z;
-            //offset+100
-            Xgrid = transform.position.x + 50;
-            Ygrid = transform.position.y + 50;
-            Zgrid = transform.position.z + 50;
+
             Grid.PutIntoGrid(this);
             Grid.UpdateNeighbours(this);
 
             State = CellState.Flow;
-            Delay = 0;
         }
 
         // Update is called once per frame
@@ -366,8 +359,6 @@ namespace VoxelWater
                 Debug.Log("+");
             }*/
 
-            //if water block has collider use (colliders.Length > 1)
-            //works only on voxel
             //Debug.Log(colliders.Length);
             if (colliders.Length > 0)
             {

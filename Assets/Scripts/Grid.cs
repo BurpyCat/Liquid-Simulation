@@ -1,19 +1,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 namespace VoxelWater
 {
     public class Grid : MonoBehaviour
     {
-        Cell[,,] cells;
+        Cell[,,] Cells;
         public GameObject Cube;
-        public int VolumeExcess;
-        // Start is called before the first frame update
+        public int VolumeExcess = 0;
+        public int Offset = 50;
+        public int GridSize = 100;
+
         void Awake()
         {
-            cells = new Cell[100, 100, 100];
-            VolumeExcess = 0;
+            Cells = new Cell[GridSize, GridSize, GridSize];
         }
 
         public Cell CreateCell(float x, float y, float z, int volume)
@@ -29,32 +31,58 @@ namespace VoxelWater
 
         public void PutIntoGrid(Cell cell)
         {
-            cells[(int)cell.Xgrid, (int)cell.Ygrid, (int)cell.Zgrid] = cell;
+            int X = (int)cell.X + Offset;
+            int Y = (int)cell.Y + Offset;
+            int Z = (int)cell.Z + Offset;
+
+            //might change to more efficient grid size assessment
+            while (X >= GridSize || X <= 0 ||
+                Y >= GridSize || Y <= 0 ||
+                Z >= GridSize || Z <= 0)
+            {
+                ExpandGrid();
+                X = (int)cell.X + Offset;
+                Y = (int)cell.Y + Offset;
+                Z = (int)cell.Z + Offset;
+            }
+
+            Cells[X, Y, Z] = cell;
         }
 
         public void UpdateNeighbours(Cell cell)
         {
-            int X = (int)cell.Xgrid;
-            int Y = (int)cell.Ygrid;
-            int Z = (int)cell.Zgrid;
+            int X = (int)cell.X + Offset;
+            int Y = (int)cell.Y + Offset;
+            int Z = (int)cell.Z + Offset;
             //front
-            cell.Front = cells[X + 1, Y, Z];
+            cell.Front = Cells[X + 1, Y, Z];
             //right
-            cell.Right = cells[X, Y, Z - 1];
+            cell.Right = Cells[X, Y, Z - 1];
             //back
-            cell.Back = cells[X - 1, Y, Z];
+            cell.Back = Cells[X - 1, Y, Z];
             //left
-            cell.Left = cells[X, Y, Z + 1];
+            cell.Left = Cells[X, Y, Z + 1];
             //bottom
-            cell.Bottom = cells[X, Y-1, Z];
+            cell.Bottom = Cells[X, Y-1, Z];
         }
 
         public void DeleteCell(Cell cell)
         {
-            int X = (int)cell.Xgrid;
-            int Y = (int)cell.Ygrid;
-            int Z = (int)cell.Zgrid;
-            cells[X, Y, Z] = null;
+            int X = (int)cell.X + Offset;
+            int Y = (int)cell.Y + Offset;
+            int Z = (int)cell.Z + Offset;
+            Cells[X, Y, Z] = null;
+        }
+
+        private void ExpandGrid()
+        {
+            int addOffset = 50;
+            Cell[,,] cells = new Cell[GridSize + addOffset, GridSize + addOffset, GridSize + addOffset];
+            Array.Copy(Cells, 0, cells, addOffset, GridSize);
+
+            Cells = cells;
+            Offset += addOffset;
+            GridSize += addOffset;
         }
     }
 }
