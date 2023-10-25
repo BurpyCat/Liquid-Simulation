@@ -105,10 +105,10 @@ namespace VoxelWater
                     Flow();
                     break;
                 case CellState.Pressured:
-                    GiveVolume();
+                    Pressured();
                     break;
                 case CellState.Shallow:
-                    GetVolume();
+                    Shallow();
                     break;
                 case CellState.Fall:
                     Fall();
@@ -148,7 +148,7 @@ namespace VoxelWater
                 State = CellState.Pushed;
             else if (sum > 0 && Volume > 1)
                 State = CellState.Flow;
-            else if (Bottom != null && Bottom.State == CellState.Still && Grid.VolumeExcess==0)
+            else if (Bottom != null && (Bottom.State == CellState.Still || Bottom.State == CellState.Shallow) && Grid.GetSourceVolume(GetSource())==0)
                 State = CellState.Merge;
             else if (sum == 0 && Volume == 1)
                 State = CellState.Still;
@@ -158,18 +158,19 @@ namespace VoxelWater
                 State = CellState.Shallow;
         }
 
-        private void GiveVolume()
+        private void GiveVolume(int source, int volume)
         {
-            Grid.VolumeExcess ++;
-            Volume--;
+            //works only with volume 1
+            Grid.GiveVolume(source, volume);
+            Volume-=volume;
         }
 
-        private void GetVolume()
+        private void GetVolume(int source, int volume)
         {
-            if (Grid.VolumeExcess != 0)
+            //works only with volume 1
+            if (Grid.GetVolume(source, volume))
             {
-                Volume++;
-                Grid.VolumeExcess--;
+                Volume+=volume;
             }
         }
 
@@ -210,6 +211,36 @@ namespace VoxelWater
             //    return false;
 
             return true;
+        }
+
+        private void Shallow()
+        {
+            int source = GetSource();
+            GetVolume(source, 1);
+        }
+
+        private void Pressured()
+        {
+            int source = GetSource();
+            GiveVolume(source, 1);
+        }
+
+        private int GetSource()
+        {
+            if (Bottom != null && (Bottom.State == CellState.Still || Bottom.State == CellState.Pushed))
+                return Bottom.Source;
+            else if (Front != null && (Front.State == CellState.Still || Front.State == CellState.Pushed))
+                return Front.Source;
+            else if (Right != null && (Right.State == CellState.Still || Right.State == CellState.Pushed))
+                return Right.Source;
+            else if (Back != null && (Back.State == CellState.Still || Back.State == CellState.Pushed))
+                return Back.Source;
+            else if (Left != null && (Left.State == CellState.Still || Left.State == CellState.Pushed))
+                return Left.Source;
+            else if (Top != null && (Top.State == CellState.Still || Top.State == CellState.Pushed))
+                return Top.Source;
+
+            return -1;
         }
 
         private void Merge()

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using Unity.VisualScripting;
+using Newtonsoft.Json.Linq;
 
 namespace VoxelWater
 {
@@ -15,7 +16,7 @@ namespace VoxelWater
         public int GridSize = 100;
 
         //excess volume source
-        Dictionary<int, int> VolumeExcess2;
+        public Dictionary<int, int> VolumeExcess2;
 
         void Awake()
         {
@@ -79,35 +80,94 @@ namespace VoxelWater
 
         private void UpdateSources(Cell cell)
         {
+            //add shallow
             if (cell.Front != null &&
-                (cell.Front.State == CellState.Still) &&
+                (cell.Front.State == CellState.Still || cell.Front.State == CellState.Pushed || cell.Front.State == CellState.Shallow) &&
                 cell.Source < cell.Front.Source)
                 cell.Front.Source = cell.Source;
             
             if (cell.Right != null &&
-                (cell.Right.State == CellState.Still) &&
+                (cell.Right.State == CellState.Still || cell.Right.State == CellState.Pushed || cell.Right.State == CellState.Shallow) &&
                 cell.Source < cell.Right.Source)
                 cell.Right.Source = cell.Source;
             
             if (cell.Back != null &&
-                (cell.Back.State == CellState.Still) &&
+                (cell.Back.State == CellState.Still || cell.Back.State == CellState.Pushed || cell.Back.State == CellState.Shallow) &&
                 cell.Source < cell.Back.Source)
                 cell.Back.Source = cell.Source;
             
             if (cell.Left != null &&
-                (cell.Left.State == CellState.Still) &&
+                (cell.Left.State == CellState.Still || cell.Left.State == CellState.Pushed || cell.Left.State == CellState.Shallow) &&
                 cell.Source < cell.Left.Source)
                 cell.Left.Source = cell.Source;
             
             if (cell.Top != null &&
-                (cell.Top.State == CellState.Still) &&
+                (cell.Top.State == CellState.Still || cell.Top.State == CellState.Pushed || cell.Top.State == CellState.Shallow) &&
                 cell.Source < cell.Top.Source)
                 cell.Top.Source = cell.Source;
 
             if (cell.Bottom != null &&
-                (cell.Bottom.State == CellState.Still) &&
+                (cell.Bottom.State == CellState.Still || cell.Bottom.State == CellState.Pushed || cell.Bottom.State == CellState.Shallow) &&
                 cell.Source < cell.Bottom.Source)
                 cell.Bottom.Source = cell.Source;
+        }
+
+        public void GiveVolume(int source, int volume)
+        {
+            //debug
+            //source = -1;
+
+            int value;
+            if (VolumeExcess2.TryGetValue(source, out value))
+            {
+                Debug.Log("Give exists "+source+" "+value);
+                VolumeExcess2[source] += volume; 
+            }
+            else
+            {
+                Debug.Log("Give not " + source + " " + value);
+                VolumeExcess2.Add(source, volume);
+            }
+        }
+
+        public int GetSourceVolume(int source)
+        {
+            //debug
+            //source = -1;
+
+            int value;
+            if (VolumeExcess2.TryGetValue(source, out value))
+            {
+                return value;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        public bool GetVolume(int source, int volume)
+        {
+            //debug
+            //source = -1;
+
+            int value;
+            if (VolumeExcess2.TryGetValue(source, out value))
+            {
+                Debug.Log("Get exists " + source + " " + value);
+                if (value > 0)
+                {
+                    VolumeExcess2[source] -= volume;
+                    return true;
+                }
+                else
+                    return false;
+            }
+            else
+            {
+                Debug.Log("Get not " + source + " " + value);
+                return false;
+            }
         }
 
         public void DeleteCell(Cell cell)
