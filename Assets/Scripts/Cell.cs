@@ -161,8 +161,10 @@ namespace VoxelWater
         private void GiveVolume(int source, int volume)
         {
             //works only with volume 1
-            Grid.GiveVolume(source, volume);
-            Volume-=volume;
+            if(Grid.GiveVolume(source, volume))
+            {
+                Volume -= volume;
+            }
         }
 
         private void GetVolume(int source, int volume)
@@ -170,7 +172,7 @@ namespace VoxelWater
             //works only with volume 1
             if (Grid.GetVolume(source, volume))
             {
-                Volume+=volume;
+                Volume+= volume;
             }
         }
 
@@ -240,7 +242,7 @@ namespace VoxelWater
             else if (Top != null && (Top.State == CellState.Still || Top.State == CellState.Pushed))
                 return Top.Source;
 
-            return -1;
+            return Source;
         }
 
         private void Merge()
@@ -295,12 +297,14 @@ namespace VoxelWater
 
             int sum = (int)sides[0] + (int)sides[1] + (int)sides[2] + (int)sides[3];
             int volumeEach = 0;
+            int oldresidue = 0;
             int residue = 0;
 
             if (sum != 0)
             {
                 volumeEach = (Volume - 1) / sum;
                 residue = (Volume - 1) % sum;
+                oldresidue = residue;
             }
 
             //front
@@ -351,8 +355,8 @@ namespace VoxelWater
                 if (volume > 0)
                     Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume, Source + 4);
             }
-
-            Volume = Volume - sum * volumeEach + residue;
+   
+            Volume = Volume - (sum * volumeEach + oldresidue);
         }
 
 

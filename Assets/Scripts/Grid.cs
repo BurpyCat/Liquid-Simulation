@@ -112,7 +112,7 @@ namespace VoxelWater
                 cell.Bottom.Source = cell.Source;
         }
 
-        public void GiveVolume(int source, int volume)
+        public bool GiveVolume(int source, int volume)
         {
             //debug
             //source = -1;
@@ -120,13 +120,50 @@ namespace VoxelWater
             int value;
             if (VolumeExcess2.TryGetValue(source, out value))
             {
+                //if (value == 1)
+                //    return false;
+
                 Debug.Log("Give exists "+source+" "+value);
-                VolumeExcess2[source] += volume; 
+                VolumeExcess2[source] += volume;
+                return true;
             }
             else
             {
                 Debug.Log("Give not " + source + " " + value);
-                VolumeExcess2.Add(source, volume);
+                //VolumeExcess2.Add(source, volume);
+                return false;
+            }
+        }
+
+        public bool GetVolume(int source, int volume)
+        {
+            //debug
+            //source = -1;
+
+            int value;
+            if (VolumeExcess2.TryGetValue(source, out value))
+            {
+                Debug.Log("Get exists " + source + " " + value);
+                if (value > 0)
+                {
+                    VolumeExcess2[source] -= volume;
+                    
+                    if(VolumeExcess2[source]==0)
+                        VolumeExcess2.Remove(source);
+                    
+                    return true;
+                }
+                else
+                {
+                    //VolumeExcess2.Remove(source);
+                    return false;
+                }
+            }
+            else
+            {
+                Debug.Log("Get not " + source + " " + value);
+                VolumeExcess2.Add(source, 0);
+                return false;
             }
         }
 
@@ -143,30 +180,6 @@ namespace VoxelWater
             else
             {
                 return 0;
-            }
-        }
-
-        public bool GetVolume(int source, int volume)
-        {
-            //debug
-            //source = -1;
-
-            int value;
-            if (VolumeExcess2.TryGetValue(source, out value))
-            {
-                Debug.Log("Get exists " + source + " " + value);
-                if (value > 0)
-                {
-                    VolumeExcess2[source] -= volume;
-                    return true;
-                }
-                else
-                    return false;
-            }
-            else
-            {
-                Debug.Log("Get not " + source + " " + value);
-                return false;
             }
         }
 

@@ -634,7 +634,7 @@ PrefabInstance:
       objectReference: {fileID: 1674882772}
     - target: {fileID: 963735077301639198, guid: 57a301fda5cedf54fbb2eed2a8aeca39, type: 3}
       propertyPath: Volume
-      value: 7
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 2010681816512056413, guid: 57a301fda5cedf54fbb2eed2a8aeca39, type: 3}
       propertyPath: Y
@@ -1310,6 +1310,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Cube: {fileID: 4885632184922983257, guid: 57a301fda5cedf54fbb2eed2a8aeca39, type: 3}
   VolumeExcess: 0
+  Offset: 50
+  GridSize: 100
 --- !u!1 &1720573692
 GameObject:
   m_ObjectHideFlags: 0
