@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
+using System;
 
 namespace VoxelWater
 {
@@ -27,7 +28,7 @@ namespace VoxelWater
         public int Volume;
         public Grid Grid;
         public CellState State;
-        //public CellState OldState;
+        public CellState OldState;
 
         // Neighboring cells
         public Cell Top;
@@ -43,7 +44,7 @@ namespace VoxelWater
 
         //extra
         private int Delay = 0;
-        private MeshRenderer Mesh;
+        public MeshRenderer Mesh;
 
         //debug
         public bool Rcoll;
@@ -66,21 +67,6 @@ namespace VoxelWater
             Initiate();
         }
 
-        public void Initiate()
-        {
-            Grid = GameObject.Find("Grid").GetComponent<Grid>();
-            Mesh = GetComponent<MeshRenderer>();
-            X = transform.position.x;
-            Y = transform.position.y;
-            Z = transform.position.z;
-
-            Grid.PutIntoGrid(this);
-            Grid.UpdateNeighbours(this);
-
-            State = CellState.Flow;
-            //OldState = CellState.Flow;
-        }
-
         // Update is called once per frame
         void Update()
         {
@@ -93,9 +79,25 @@ namespace VoxelWater
                 Delay++;
         }
 
+        public void Initiate()
+        {
+            Grid = GameObject.Find("Grid").GetComponent<Grid>();
+            Mesh = GetComponent<MeshRenderer>();
+            X = transform.position.x;
+            Y = transform.position.y;
+            Z = transform.position.z;
+
+            Grid.PutIntoGrid(this);
+            Grid.UpdateNeighbours(this);
+
+            State = CellState.Flow;
+            OldState = CellState.Flow;
+        }
+
         void StartProcess()
         {
             Grid.UpdateNeighbours(this);
+            OldState = State;
             SetState();
             RenderMesh();
 
@@ -137,18 +139,22 @@ namespace VoxelWater
             bool surroundedByEmpty = SurroundedByEmpty();
             SurroundedEmpty = SurroundedByEmpty();
 
-            //if (Volume == 0 && surroundedByEmpty)
-            //    State = CellState.Destroy;
-            //fix destroy
             if (Volume == 0)
                 State = CellState.Empty;
             else if (down)
                 State = CellState.Fall;
             else if (emptyNeighbour != null && (Bottom==null || Bottom.State != CellState.Still))
+            {
                 State = CellState.Pushed;
+                //to not have stuck blocks
+                if(OldState == CellState.Empty)
+                    State = CellState.Pressured;
+            } 
             else if (sum > 0 && Volume > 1)
                 State = CellState.Flow;
-            else if (Bottom != null && (Bottom.State == CellState.Still || Bottom.State == CellState.Shallow) && Grid.GetSourceVolume(GetSource())==0)
+            else if (Bottom != null && 
+                (Bottom.State == CellState.Still || Bottom.State == CellState.Shallow || Bottom.State == CellState.Pressured) && 
+                Grid.GetSourceVolume(GetSource())==0)
                 State = CellState.Merge;
             else if (sum == 0 && Volume == 1)
                 State = CellState.Still;
@@ -156,6 +162,82 @@ namespace VoxelWater
                 State = CellState.Pressured;
             else if (sum > 0 && Volume == 1)
                 State = CellState.Shallow;
+        }
+
+        private void Flow()
+        {
+            //flow to sides
+            //(front, right, back, left)
+            Vector4 sides = getSideColliders();
+
+            int sum = (int)sides[0] + (int)sides[1] + (int)sides[2] + (int)sides[3];
+            int volumeEach = 0;
+            int oldresidue = 0;
+            int residue = 0;
+
+            if (sum != 0)
+            {
+                volumeEach = (Volume - 1) / sum;
+                residue = (Volume - 1) % sum;
+                oldresidue = residue;
+            }
+
+            //front
+            if (sides[0] == 1)
+            {
+                int volume = volumeEach;
+                if (residue != 0)
+                {
+                    --residue;
+                    volume += 1;
+                }
+                if (volume > 0)
+                    Front = Grid.CreateCell(X + 1, Y + 0, Z + 0, volume, Source + 1);
+            }
+            //right
+            if (sides[1] == 1)
+            {
+                int volume = volumeEach;
+                if (residue != 0)
+                {
+                    --residue;
+                    volume += 1;
+                }
+                if (volume > 0)
+                    Right = Grid.CreateCell(X + 0, Y + 0, Z - 1, volume, Source + 2);
+            }
+            //back
+            if (sides[2] == 1)
+            {
+                int volume = volumeEach;
+                if (residue != 0)
+                {
+                    --residue;
+                    volume += 1;
+                }
+                if (volume > 0)
+                    Back = Grid.CreateCell(X - 1, Y + 0, Z + 0, volume, Source + 3);
+            }
+            //left
+            if (sides[3] == 1)
+            {
+                int volume = volumeEach;
+                if (residue != 0)
+                {
+                    --residue;
+                    volume += 1;
+                }
+                if (volume > 0)
+                    Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume, Source + 4);
+            }
+
+            Volume = Volume - (sum * volumeEach + oldresidue);
+        }
+
+        private void Pressured()
+        {
+            int source = GetSource();
+            GiveVolume(source, 1);
         }
 
         private void GiveVolume(int source, int volume)
@@ -167,6 +249,12 @@ namespace VoxelWater
             }
         }
 
+        private void Shallow()
+        {
+            int source = GetSource();
+            GetVolume(source, 1);
+        }
+
         private void GetVolume(int source, int volume)
         {
             //works only with volume 1
@@ -174,6 +262,92 @@ namespace VoxelWater
             {
                 Volume+= volume;
             }
+        }
+
+        private void Fall()
+        {
+            Grid.CreateCell(X + 0, Y - 1, Z + 0, Volume, Source);
+            Volume = 0;
+            Mesh.enabled = false;
+        }
+
+        private void Pushed()
+        {
+            Cell emptyCell = GetEmptyNeighbour();
+
+            emptyCell.Volume++;
+            emptyCell.Mesh.enabled = true;
+
+            Volume--;
+            if (Volume == 0)
+            {
+                Mesh.enabled = false;
+            }
+        }
+
+        private Cell GetEmptyNeighbourRandom()
+        {
+            int[] cells = new int[] { 0, 0, 0, 0, 0 };
+            int sum = 0;
+
+            if (Bottom != null && Bottom.State == CellState.Empty)
+            {
+                cells[0] = 1;
+                sum++;
+            }
+            if (Front != null && Front.State == CellState.Empty)
+            {
+                cells[1] = 1;
+                sum++;
+            }
+            if (Right != null && Right.State == CellState.Empty)
+            {
+                cells[2] = 1;
+                sum++;
+            }
+            if (Back != null && Back.State == CellState.Empty)
+            {
+                cells[3] = 1;
+                sum++;
+            }
+            if (Left != null && Left.State == CellState.Empty)
+            {
+                cells[4] = 1;
+                sum++;
+            }
+
+            System.Random rnd = new System.Random();
+            int num = rnd.Next(0, sum);
+
+            int i = 0;
+            int cellnum = 0;
+            foreach(int cell in cells)
+            {
+                if (num == 0 && cell == 1)
+                {
+                    cellnum = i;
+                    break;
+                }
+                else if (cell == 1)
+                    num--;
+                i++;
+            }
+
+            switch (cellnum)
+            {
+                case 0:
+                    return Bottom;
+                case 1:
+                    return Front;
+                case 2:
+                    return Right;
+                case 3:
+                    return Back;
+                case 4:
+                    return Left;
+            }
+
+            return null;
         }
 
         private Cell GetEmptyNeighbour()
@@ -215,18 +389,6 @@ namespace VoxelWater
             return true;
         }
 
-        private void Shallow()
-        {
-            int source = GetSource();
-            GetVolume(source, 1);
-        }
-
-        private void Pressured()
-        {
-            int source = GetSource();
-            GiveVolume(source, 1);
-        }
-
         private int GetSource()
         {
             if (Bottom != null && (Bottom.State == CellState.Still || Bottom.State == CellState.Pushed))
@@ -251,23 +413,6 @@ namespace VoxelWater
             Volume = 0;
         }
 
-        private void Pushed()
-        {
-            Cell emptyCell = GetEmptyNeighbour();
-            emptyCell.Volume++;
-            Volume--;
-            if(Volume == 0)
-            {
-                Mesh.enabled = false;
-            }
-        }
-
-        private void Fall()
-        {
-            Grid.CreateCell(X + 0, Y - 1, Z + 0, Volume, Source);
-            Volume = 0;
-            Mesh.enabled = false;
-        }
         private void Destroy()
         {
             Grid.VolumeExcess += Volume;
@@ -288,78 +433,6 @@ namespace VoxelWater
             else
                 Mesh.enabled = true;
         }
-
-        private void Flow()
-        {
-            //flow to sides
-            //(front, right, back, left)
-            Vector4 sides = getSideColliders();
-
-            int sum = (int)sides[0] + (int)sides[1] + (int)sides[2] + (int)sides[3];
-            int volumeEach = 0;
-            int oldresidue = 0;
-            int residue = 0;
-
-            if (sum != 0)
-            {
-                volumeEach = (Volume - 1) / sum;
-                residue = (Volume - 1) % sum;
-                oldresidue = residue;
-            }
-
-            //front
-            if (sides[0] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                    Front = Grid.CreateCell(X + 1, Y + 0, Z + 0, volume, Source+1);
-            }
-            //right
-            if (sides[1] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                    Right = Grid.CreateCell(X + 0, Y + 0, Z - 1, volume, Source + 2);
-            }
-            //back
-            if (sides[2] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                    Back = Grid.CreateCell(X - 1, Y + 0, Z + 0, volume, Source + 3);
-            }
-            //left
-            if (sides[3] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                    Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume, Source + 4);
-            }
-   
-            Volume = Volume - (sum * volumeEach + oldresidue);
-        }
-
-
 
         private Vector4 getSideColliders()
         {

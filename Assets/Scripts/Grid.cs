@@ -74,13 +74,12 @@ namespace VoxelWater
             //top
             cell.Top = Cells[X, Y + 1, Z];
 
-            if(cell.State==CellState.Still)
+            if(cell.State==CellState.Still || cell.State == CellState.Shallow)
                 UpdateSources(cell);
         }
 
         private void UpdateSources(Cell cell)
         {
-            //add shallow
             if (cell.Front != null &&
                 (cell.Front.State == CellState.Still || cell.Front.State == CellState.Pushed || cell.Front.State == CellState.Shallow) &&
                 cell.Source < cell.Front.Source)
@@ -115,7 +114,7 @@ namespace VoxelWater
         public bool GiveVolume(int source, int volume)
         {
             //debug
-            //source = -1;
+            source = -1;
 
             int value;
             if (VolumeExcess2.TryGetValue(source, out value))
@@ -123,13 +122,13 @@ namespace VoxelWater
                 //if (value == 1)
                 //    return false;
 
-                Debug.Log("Give exists "+source+" "+value);
+                //Debug.Log("Give exists "+source+" "+value);
                 VolumeExcess2[source] += volume;
                 return true;
             }
             else
             {
-                Debug.Log("Give not " + source + " " + value);
+                //Debug.Log("Give not " + source + " " + value);
                 //VolumeExcess2.Add(source, volume);
                 return false;
             }
@@ -138,12 +137,12 @@ namespace VoxelWater
         public bool GetVolume(int source, int volume)
         {
             //debug
-            //source = -1;
+            source = -1;
 
             int value;
             if (VolumeExcess2.TryGetValue(source, out value))
             {
-                Debug.Log("Get exists " + source + " " + value);
+                //Debug.Log("Get exists " + source + " " + value);
                 if (value > 0)
                 {
                     VolumeExcess2[source] -= volume;
@@ -161,7 +160,7 @@ namespace VoxelWater
             }
             else
             {
-                Debug.Log("Get not " + source + " " + value);
+                //Debug.Log("Get not " + source + " " + value);
                 VolumeExcess2.Add(source, 0);
                 return false;
             }
@@ -170,7 +169,7 @@ namespace VoxelWater
         public int GetSourceVolume(int source)
         {
             //debug
-            //source = -1;
+            source = -1;
 
             int value;
             if (VolumeExcess2.TryGetValue(source, out value))
