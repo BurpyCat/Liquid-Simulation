@@ -38,10 +38,6 @@ namespace VoxelWater
         public Cell Front;
         public Cell Back;
 
-        //source
-        public bool CheckedSource = false;
-        public int Source = 0;
-
         //extra
         private int Delay = 0;
         public MeshRenderer Mesh;
@@ -70,7 +66,7 @@ namespace VoxelWater
         // Update is called once per frame
         void Update()
         {
-            if (Delay == 50)
+            if (Delay == 30)
             {
                 StartProcess();
                 Delay = 0;
@@ -154,7 +150,7 @@ namespace VoxelWater
                 State = CellState.Flow;
             else if (Bottom != null && 
                 (Bottom.State == CellState.Still || Bottom.State == CellState.Shallow || Bottom.State == CellState.Pressured) && 
-                Grid.GetSourceVolume(GetSource())==0)
+                Grid.VolumeExcess==0)
                 State = CellState.Merge;
             else if (sum == 0 && Volume == 1)
                 State = CellState.Still;
@@ -192,7 +188,7 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Front = Grid.CreateCell(X + 1, Y + 0, Z + 0, volume, Source + 1);
+                    Front = Grid.CreateCell(X + 1, Y + 0, Z + 0, volume);
             }
             //right
             if (sides[1] == 1)
@@ -204,7 +200,7 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Right = Grid.CreateCell(X + 0, Y + 0, Z - 1, volume, Source + 2);
+                    Right = Grid.CreateCell(X + 0, Y + 0, Z - 1, volume);
             }
             //back
             if (sides[2] == 1)
@@ -216,7 +212,7 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Back = Grid.CreateCell(X - 1, Y + 0, Z + 0, volume, Source + 3);
+                    Back = Grid.CreateCell(X - 1, Y + 0, Z + 0, volume);
             }
             //left
             if (sides[3] == 1)
@@ -228,7 +224,7 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume, Source + 4);
+                    Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume);
             }
 
             Volume = Volume - (sum * volumeEach + oldresidue);
@@ -236,29 +232,24 @@ namespace VoxelWater
 
         private void Pressured()
         {
-            int source = GetSource();
-            GiveVolume(source, 1);
+            GiveVolume(1);
         }
 
-        private void GiveVolume(int source, int volume)
+        private void GiveVolume(int volume)
         {
-            //works only with volume 1
-            if(Grid.GiveVolume(source, volume))
-            {
-                Volume -= volume;
-            }
+            Grid.GiveVolume(volume);
+            Volume -= volume;
         }
 
         private void Shallow()
         {
-            int source = GetSource();
-            GetVolume(source, 1);
+            GetVolume(1);
         }
 
-        private void GetVolume(int source, int volume)
+        private void GetVolume(int volume)
         {
             //works only with volume 1
-            if (Grid.GetVolume(source, volume))
+            if (Grid.GetVolume(volume))
             {
                 Volume+= volume;
             }
@@ -266,7 +257,7 @@ namespace VoxelWater
 
         private void Fall()
         {
-            Grid.CreateCell(X + 0, Y - 1, Z + 0, Volume, Source);
+            Grid.CreateCell(X + 0, Y - 1, Z + 0, Volume);
             Volume = 0;
             Mesh.enabled = false;
         }
@@ -387,24 +378,6 @@ namespace VoxelWater
             //    return false;
 
             return true;
-        }
-
-        private int GetSource()
-        {
-            if (Bottom != null && (Bottom.State == CellState.Still || Bottom.State == CellState.Pushed))
-                return Bottom.Source;
-            else if (Front != null && (Front.State == CellState.Still || Front.State == CellState.Pushed))
-                return Front.Source;
-            else if (Right != null && (Right.State == CellState.Still || Right.State == CellState.Pushed))
-                return Right.Source;
-            else if (Back != null && (Back.State == CellState.Still || Back.State == CellState.Pushed))
-                return Back.Source;
-            else if (Left != null && (Left.State == CellState.Still || Left.State == CellState.Pushed))
-                return Left.Source;
-            else if (Top != null && (Top.State == CellState.Still || Top.State == CellState.Pushed))
-                return Top.Source;
-
-            return Source;
         }
 
         private void Merge()
