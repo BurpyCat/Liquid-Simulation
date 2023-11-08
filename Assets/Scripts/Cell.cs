@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System;
+using Unity.VisualScripting;
 
 namespace VoxelWater
 {
@@ -16,11 +17,18 @@ namespace VoxelWater
         Empty, //volume is 0 and neighbouring blocks want to fill its place
         Pushed, //water is near an empty block that need sto be filled
         Destroy, //water is surrounded by empty blocks
-        Merge //water on another water block ?and water not in excess?
+        Merge, //water on another water block ?and water not in excess?
+
+        Create, //block creates infinite other blocks
+        Remove //block destroys surrounding blocks
     }
 
     public class Cell : MonoBehaviour
     {
+        public bool CreateWater = false;
+        public bool RemoveWater = false;
+        public int DelayTime = 40;
+
         // main info
         public float X;
         public float Y;
@@ -66,7 +74,7 @@ namespace VoxelWater
         // Update is called once per frame
         void Update()
         {
-            if (Delay == 30)
+            if (Delay == DelayTime)
             {
                 StartProcess();
                 Delay = 0;
@@ -86,15 +94,22 @@ namespace VoxelWater
             Grid.PutIntoGrid(this);
             Grid.UpdateNeighbours(this);
 
-            State = CellState.Flow;
-            OldState = CellState.Flow;
+            if (RemoveWater)
+                State = CellState.Remove;
+            else if(CreateWater)
+                State = CellState.Create;
+            else
+            {
+                State = CellState.Flow;
+                OldState = CellState.Flow;
+            }
         }
 
         void StartProcess()
         {
             Grid.UpdateNeighbours(this);
             OldState = State;
-            SetState();
+            if(!RemoveWater && !CreateWater) SetState();
             RenderMesh();
 
             switch (State)
@@ -120,32 +135,72 @@ namespace VoxelWater
                 case CellState.Merge:
                     Merge();
                     break;
+                case CellState.Remove:
+                    Remove();
+                    break;
+                case CellState.Create:
+                    Create(10);
+                    break;
+                case CellState.Empty:
+                    Destroy();
+                    break;
             }
 
             Grid.UpdateNeighbours(this);
         }
+        
+        private void Create(int volume)
+        {
+            int[] sides = getSideColliders();
+            int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
+            if (sum == 0)
+            {
+                FlowAll(volume);
+            }
+            else
+                Flow(false);
+        }
+
+        private void Remove()
+        {
+            if (Top != null)
+                Top.Volume = 0;
+            if (Bottom != null)
+                Bottom.Volume = 0;
+            if (Right != null)
+                Right.Volume = 0;
+            if (Left != null)
+                Left.Volume = 0;
+            if (Front != null)
+                Front.Volume = 0;
+            if (Back != null)
+                Back.Volume = 0;
+    }
+
         private void SetState()
         {
-            Vector4 sides = getSideColliders();
-            int sum = (int)sides[0] + (int)sides[1] + (int)sides[2] + (int)sides[3];
-            
-            bool down = (Bottom == null && !ColliderExists(0, -1, 0, out Dcoll));
+            int[] sides = getSideColliders();
+            int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
+
+            bool down = ((Bottom == null || Bottom.State == CellState.Empty) && !ColliderExists(0, -1, 0, out Dcoll));
             
             Cell emptyNeighbour = GetEmptyNeighbour();
             bool surroundedByEmpty = SurroundedByEmpty();
             SurroundedEmpty = SurroundedByEmpty();
 
-            if (Volume == 0)
+            if(surroundedByEmpty && Volume == 0)
+                State = CellState.Destroy;
+            else if (Volume == 0)
                 State = CellState.Empty;
             else if (down)
                 State = CellState.Fall;
-            else if (emptyNeighbour != null && (Bottom==null || Bottom.State != CellState.Still))
-            {
-                State = CellState.Pushed;
-                //to not have stuck blocks
-                if(OldState == CellState.Empty)
-                    State = CellState.Pressured;
-            } 
+            //else if (emptyNeighbour != null && (Bottom==null || Bottom.State != CellState.Still))
+            //{
+            //    State = CellState.Pushed;
+            //    //to not have stuck blocks
+            //    if(OldState == CellState.Empty)
+            //        State = CellState.Pressured;
+            //} 
             else if (sum > 0 && Volume > 1)
                 State = CellState.Flow;
             else if (Bottom != null && 
@@ -160,13 +215,13 @@ namespace VoxelWater
                 State = CellState.Shallow;
         }
 
-        private void Flow()
+        private void Flow(bool decreaseVolume = true)
         {
             //flow to sides
             //(front, right, back, left)
-            Vector4 sides = getSideColliders();
+            int[] sides = getSideColliders(); //five array
 
-            int sum = (int)sides[0] + (int)sides[1] + (int)sides[2] + (int)sides[3];
+            int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
             int volumeEach = 0;
             int oldresidue = 0;
             int residue = 0;
@@ -188,7 +243,12 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Front = Grid.CreateCell(X + 1, Y + 0, Z + 0, volume);
+                {
+                    if (Front != null)
+                        Front.Volume += volume;
+                    else
+                        Front = Grid.CreateCell(X + 1, Y + 0, Z + 0, volume);
+                }
             }
             //right
             if (sides[1] == 1)
@@ -200,7 +260,12 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Right = Grid.CreateCell(X + 0, Y + 0, Z - 1, volume);
+                {
+                    if (Right != null)
+                        Right.Volume += volume;
+                    else
+                        Right = Grid.CreateCell(X + 0, Y + 0, Z - 1, volume);
+                }
             }
             //back
             if (sides[2] == 1)
@@ -212,7 +277,12 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Back = Grid.CreateCell(X - 1, Y + 0, Z + 0, volume);
+                {
+                    if (Back != null)
+                        Back.Volume += volume;
+                    else
+                        Back = Grid.CreateCell(X - 1, Y + 0, Z + 0, volume);
+                }
             }
             //left
             if (sides[3] == 1)
@@ -224,10 +294,34 @@ namespace VoxelWater
                     volume += 1;
                 }
                 if (volume > 0)
-                    Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume);
+                {
+                    if (Left != null)
+                        Left.Volume += volume;
+                    else
+                        Left = Grid.CreateCell(X + 0, Y + 0, Z + 1, volume);
+                }
             }
 
-            Volume = Volume - (sum * volumeEach + oldresidue);
+            //bottom
+            if (sides[4] == 1)
+            {
+                int volume = volumeEach;
+                if (residue != 0)
+                {
+                    --residue;
+                    volume += 1;
+                }
+                if (volume > 0)
+                {
+                    if (Bottom != null)
+                        Bottom.Volume += volume;
+                    else
+                        Bottom = Grid.CreateCell(X + 0, Y - 1, Z + 0, volume);
+                }
+            }
+
+            if (decreaseVolume)
+                Volume = Volume - (sum * volumeEach + oldresidue);
         }
 
         private void Pressured()
@@ -257,7 +351,10 @@ namespace VoxelWater
 
         private void Fall()
         {
-            Grid.CreateCell(X + 0, Y - 1, Z + 0, Volume);
+            if (Bottom == null)
+                Grid.CreateCell(X + 0, Y - 1, Z + 0, Volume);
+            else
+                Bottom.Volume += Volume;
             Volume = 0;
             Mesh.enabled = false;
         }
@@ -358,6 +455,20 @@ namespace VoxelWater
             return emptyCell;
         }
 
+        private void FlowAll(int volume)
+        {
+            if (Bottom != null)
+                Bottom.Volume+=volume;
+            if (Front != null)
+                Front.Volume += volume;
+            if (Right != null)
+                Right.Volume += volume;
+            if (Back != null)
+                Back.Volume += volume;
+            if (Left != null)
+                Left.Volume += volume;
+        }
+
         private bool SurroundedByEmpty()
         {
             if ((Bottom != null && Bottom.State != CellState.Empty))
@@ -399,7 +510,7 @@ namespace VoxelWater
 
         private void RenderMesh()
         {
-            if(State == CellState.Empty)
+            if(State == CellState.Empty || Volume == 0)
             {
                 Mesh.enabled = false;
             }
@@ -407,21 +518,24 @@ namespace VoxelWater
                 Mesh.enabled = true;
         }
 
-        private Vector4 getSideColliders()
+        private int[] getSideColliders()
         {
-            Vector4 sides = Vector4.zero;
+            int[] sides = { 0, 0, 0, 0, 0 };
             //front
-            if (Front == null && !ColliderExists(1, 0, 0, out Fcoll))
-                sides += new Vector4(1, 0, 0, 0);
+            if ((Front == null || Front.State == CellState.Empty) && !ColliderExists(1, 0, 0, out Fcoll))
+                sides[0] = 1;
             //right
-            if (Right == null && !ColliderExists(0, 0, -1, out Rcoll))
-                sides += new Vector4(0, 1, 0, 0);
+            if ((Right == null || Right.State == CellState.Empty) && !ColliderExists(0, 0, -1, out Rcoll))
+                sides[1] = 1;
             //back
-            if (Back == null && !ColliderExists(-1, 0, 0, out Bcoll))
-                sides += new Vector4(0, 0, 1, 0);
+            if ((Back == null || Back.State == CellState.Empty) && !ColliderExists(-1, 0, 0, out Bcoll))
+                sides[2] = 1;
             //left
-            if (Left == null && !ColliderExists(0, 0, 1, out Lcoll))
-                sides += new Vector4(0, 0, 0, 1);
+            if ((Left == null || Left.State == CellState.Empty) && !ColliderExists(0, 0, 1, out Lcoll))
+                sides[3] = 1;
+            //bottom
+            if ((Bottom == null || Bottom.State == CellState.Empty) && !ColliderExists(0, -1, 0, out Bcoll))
+                sides[4] = 1;
 
             return sides;
         }

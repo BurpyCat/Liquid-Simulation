@@ -738,6 +738,10 @@ PrefabInstance:
       propertyPath: Volume
       value: 15
       objectReference: {fileID: 0}
+    - target: {fileID: 963735077301639198, guid: 57a301fda5cedf54fbb2eed2a8aeca39, type: 3}
+      propertyPath: DelayTime
+      value: 40
+      objectReference: {fileID: 0}
     - target: {fileID: 2010681816512056413, guid: 57a301fda5cedf54fbb2eed2a8aeca39, type: 3}
       propertyPath: Y
       value: 1
