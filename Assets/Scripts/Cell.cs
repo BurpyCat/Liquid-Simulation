@@ -50,6 +50,12 @@ namespace VoxelWater
         private int Delay = 0;
         public MeshRenderer Mesh;
 
+        //materials
+        public Renderer RendererMaterial;
+        public Material NormalMaterial;
+        public Material PressuredMaterial;
+        public Material ShallowMaterial;
+
         //debug
         public bool Rcoll;
         public bool Fcoll;
@@ -87,6 +93,7 @@ namespace VoxelWater
         {
             Grid = GameObject.Find("Grid").GetComponent<Grid>();
             Mesh = GetComponent<MeshRenderer>();
+            RendererMaterial = GetComponent<Renderer>();
             X = transform.position.x;
             Y = transform.position.y;
             Z = transform.position.z;
@@ -103,14 +110,17 @@ namespace VoxelWater
                 State = CellState.Flow;
                 OldState = CellState.Flow;
             }
+
+            ChangeMaterial();
         }
 
         void StartProcess()
         {
             Grid.UpdateNeighbours(this);
             OldState = State;
-            if(!RemoveWater && !CreateWater) SetState();
+            if (!RemoveWater && !CreateWater) SetState();
             RenderMesh();
+            ChangeMaterial();
 
             switch (State)
             {
@@ -139,7 +149,7 @@ namespace VoxelWater
                     Remove();
                     break;
                 case CellState.Create:
-                    Create(10);
+                    Create(5);
                     break;
                 case CellState.Empty:
                     Destroy();
@@ -175,7 +185,29 @@ namespace VoxelWater
                 Front.Volume = 0;
             if (Back != null)
                 Back.Volume = 0;
-    }
+        }
+
+        private void ChangeMaterial()
+        {
+            switch (State)
+            {
+                case CellState.Shallow:
+                    RendererMaterial.material = ShallowMaterial;
+                    break;
+                case CellState.Fall:
+                    RendererMaterial.material = ShallowMaterial;
+                    break;
+                case CellState.Flow:
+                    RendererMaterial.material = ShallowMaterial;
+                    break;
+                case CellState.Pressured:
+                    RendererMaterial.material = PressuredMaterial;
+                    break;
+                default:
+                    RendererMaterial.material = NormalMaterial;
+                    break;
+            }
+        }
 
         private void SetState()
         {

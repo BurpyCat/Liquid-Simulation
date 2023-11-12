@@ -1187,7 +1187,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6802963783720426559, guid: f16c75290711baf4eadcd416a6b4ccb4, type: 3}
       propertyPath: m_RootOrder
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6802963783720426559, guid: f16c75290711baf4eadcd416a6b4ccb4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1402,6 +1402,18 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1674882771}
     m_Modifications:
+    - target: {fileID: 963735077301639198, guid: 8aae38ba5da2545438d07d03bbd50725, type: 3}
+      propertyPath: NormalMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 548f7126c1eca264eaf7250015eb27c5, type: 2}
+    - target: {fileID: 963735077301639198, guid: 8aae38ba5da2545438d07d03bbd50725, type: 3}
+      propertyPath: ShallowMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: ff8bd080cc2f0184ebc7d30dba4a21c3, type: 2}
+    - target: {fileID: 963735077301639198, guid: 8aae38ba5da2545438d07d03bbd50725, type: 3}
+      propertyPath: PressuredMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: a9c7253428c93b741b63bcc3f8214a94, type: 2}
     - target: {fileID: 4885632184922983257, guid: 8aae38ba5da2545438d07d03bbd50725, type: 3}
       propertyPath: m_Name
       value: CreateBlock
