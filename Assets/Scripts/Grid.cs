@@ -13,6 +13,7 @@ namespace VoxelWater
 {
     public class Grid : MonoBehaviour
     {
+        public List<Cell> Cells_list;
         public Cell[,,] Cells;
         public GridManager Manager;
         public GameObject Cube;
@@ -37,6 +38,24 @@ namespace VoxelWater
             Initiate(0, 0, 0);
         }
 
+        void Update()
+        {
+            int count = Cells_list.Count;
+            List<Cell> removeList = new List<Cell>();
+            for(int i = 0; i < count; i++)
+            {
+                StartCoroutine(Cells_list[i].StartProcess());
+                if (Cells_list[i].State == CellState.Still && Cells_list[i].OldState == CellState.Still)
+                    removeList.Add(Cells_list[i]);
+                
+            }
+
+            foreach (Cell cell in removeList)
+            {
+                Cells_list.Remove(cell);
+            }
+        }
+
         public void Initiate(int X, int Y, int Z)
         {
             Manager = GameObject.Find("GridManager").GetComponent<GridManager>();
@@ -44,6 +63,7 @@ namespace VoxelWater
             Offset = (GridSize - 1) / 2;
             GridOffset = Manager.GridOffset;
             Cells = new Cell[GridSize, GridSize, GridSize];
+            Cells_list = new List<Cell>();
 
             this.X = X; 
             this.Y = Y; 
@@ -102,6 +122,7 @@ namespace VoxelWater
             int z = (int)cell.Z + Offset - (Z * GridSize);
 
             Cells[x, y, z] = cell;
+            Cells_list.Add(cell);
             cell.Grid = this;
         }
 

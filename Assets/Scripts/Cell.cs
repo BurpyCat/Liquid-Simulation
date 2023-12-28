@@ -5,6 +5,7 @@ using UnityEngine.UIElements;
 using System;
 using Unity.VisualScripting;
 using Unity.Jobs;
+using UnityEditor.Experimental.GraphView;
 
 namespace VoxelWater
 {
@@ -24,7 +25,7 @@ namespace VoxelWater
         Remove //block destroys surrounding blocks
     }
 
-    public class Cell : MonoBehaviour
+    public class Cell : MonoBehaviour, IEquatable<Cell>
     {
         public GameObject GridObject;
 
@@ -73,12 +74,13 @@ namespace VoxelWater
         public bool SurroundedEmpty;
 
 
-        private void Awake()
+        private void Start()
         {
             Initiate();
         }
 
         // Update is called once per frame
+        /*
         void Update()
         {
             //if (Delay == DelayTime)
@@ -88,6 +90,14 @@ namespace VoxelWater
             //}
             //else
             //    Delay++;
+        }
+        */
+
+        public bool Equals(Cell other)
+        {
+            if(other == null) return false;
+            if(other == this) return true;
+            return false;
         }
 
         public void Initiate()
@@ -107,9 +117,14 @@ namespace VoxelWater
             //Grid.UpdateNeighbours(this);
 
             if (RemoveWater)
+            {
                 State = CellState.Remove;
-            else if(CreateWater)
+            }
+            else if (CreateWater)
+            {
                 State = CellState.Create;
+                Grid.PutIntoGrid(this);
+            }
             else
             {
                 State = CellState.Flow;
@@ -119,7 +134,7 @@ namespace VoxelWater
             ChangeMaterial();
         }
 
-        void StartProcess()
+        public IEnumerator StartProcess()
         {
             if (State == CellState.Flow || State != CellState.Fall)
             {
@@ -169,6 +184,8 @@ namespace VoxelWater
             {
                 Grid.UpdateNeighbours(this);
             }
+
+            yield return null;
         }
         
         private void Create(int volume)
