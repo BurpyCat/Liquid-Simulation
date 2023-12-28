@@ -47,9 +47,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c45fcec2d868c643a38faca773e4f03, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GridObject: {fileID: 0}
   CreateWater: 0
   RemoveWater: 0
-  DelayTime: 10
+  DelayTime: 1
   X: 0
   Y: 0
   Z: 0

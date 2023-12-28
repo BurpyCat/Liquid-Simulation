@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System;
 using Unity.VisualScripting;
+using Unity.Jobs;
 
 namespace VoxelWater
 {
@@ -25,6 +26,8 @@ namespace VoxelWater
 
     public class Cell : MonoBehaviour
     {
+        public GameObject GridObject;
+
         public bool CreateWater = false;
         public bool RemoveWater = false;
         public int DelayTime = 40;
@@ -56,6 +59,9 @@ namespace VoxelWater
         public Material PressuredMaterial;
         public Material ShallowMaterial;
 
+        //diagostic
+        public Diagnostic Diagnostics;
+
         //debug
         public bool Rcoll;
         public bool Fcoll;
@@ -66,40 +72,39 @@ namespace VoxelWater
 
         public bool SurroundedEmpty;
 
-        void Awake()
-        {
 
-        }
-
-        private void Start()
+        private void Awake()
         {
-            //if spawned first
             Initiate();
         }
 
         // Update is called once per frame
         void Update()
         {
-            if (Delay == DelayTime)
-            {
+            //if (Delay == DelayTime)
+            //{
                 StartProcess();
-                Delay = 0;
-            }
-            else
-                Delay++;
+              //  Delay = 0;
+            //}
+            //else
+            //    Delay++;
         }
 
         public void Initiate()
         {
-            Grid = GameObject.Find("Grid").GetComponent<Grid>();
+            Diagnostics = GameObject.Find("Diagnostic").GetComponent<Diagnostic>();
+            Diagnostics.IncreaseCellCount();
+
+            if (GridObject != null)
+                Grid = GridObject.GetComponent<Grid>();
             Mesh = GetComponent<MeshRenderer>();
             RendererMaterial = GetComponent<Renderer>();
             X = transform.position.x;
             Y = transform.position.y;
             Z = transform.position.z;
 
-            Grid.PutIntoGrid(this);
-            Grid.UpdateNeighbours(this);
+            //Grid.PutIntoGrid(this);
+            //Grid.UpdateNeighbours(this);
 
             if (RemoveWater)
                 State = CellState.Remove;
@@ -116,7 +121,11 @@ namespace VoxelWater
 
         void StartProcess()
         {
-            Grid.UpdateNeighbours(this);
+            if (State == CellState.Flow || State != CellState.Fall)
+            {
+                Grid.UpdateNeighbours(this);
+            }
+            
             OldState = State;
             if (!RemoveWater && !CreateWater) SetState();
             RenderMesh();
@@ -156,7 +165,10 @@ namespace VoxelWater
                     break;
             }
 
-            Grid.UpdateNeighbours(this);
+            if (State != CellState.Still)
+            {
+                Grid.UpdateNeighbours(this);
+            }
         }
         
         private void Create(int volume)
@@ -236,8 +248,7 @@ namespace VoxelWater
             else if (sum > 0 && Volume > 1)
                 State = CellState.Flow;
             else if (Bottom != null && 
-                (Bottom.State == CellState.Still || Bottom.State == CellState.Shallow || Bottom.State == CellState.Pressured) && 
-                Grid.VolumeExcess==0)
+                (Bottom.State == CellState.Shallow))
                 State = CellState.Merge;
             else if (sum == 0 && Volume == 1)
                 State = CellState.Still;
@@ -363,7 +374,7 @@ namespace VoxelWater
 
         private void GiveVolume(int volume)
         {
-            Grid.GiveVolume(volume);
+            //Grid.GiveVolume(volume);
             Volume -= volume;
         }
 
@@ -375,10 +386,10 @@ namespace VoxelWater
         private void GetVolume(int volume)
         {
             //works only with volume 1
-            if (Grid.GetVolume(volume))
-            {
+            //if (Grid.GetVolume(volume))
+            //{
                 Volume+= volume;
-            }
+            //}
         }
 
         private void Fall()
@@ -536,8 +547,8 @@ namespace VoxelWater
         }
         private void DeleteCell()
         {
-            Grid.DeleteCell(this);
-            Destroy(gameObject);
+            //Grid.DeleteCell(this);
+            //Destroy(gameObject);
         }
 
         private void RenderMesh()
