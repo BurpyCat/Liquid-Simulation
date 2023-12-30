@@ -8,6 +8,7 @@ using Unity.Jobs;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
+using System.Threading;
 
 namespace VoxelWater
 {
@@ -32,28 +33,62 @@ namespace VoxelWater
         //(GridManagerSize - 1) /2
         public int GridOffset = 50;
 
+        Thread thread;
+        bool update = true;
+
+        public bool first = false;
 
         void Awake()
         {
             Initiate(0, 0, 0);
+            if(first)
+            {
+                Manager.PutIntoGridManager(X, Y, Z, this);
+            }
+                
+        }
+
+        void Start()
+        {
+            //thread = new Thread(new ThreadStart(UpdateCells));
+            //thread.Start();
         }
 
         void Update()
         {
+
+            UpdateCells();
+
+        }
+        /*
+        private void OnDestroy()
+        {
+            update = false;
+            thread.Abort();
+        }
+        private void OnApplicationQuit()
+        {
+            update = false;
+            thread.Abort();
+        }
+        */
+        public void UpdateCells()
+        {
             int count = Cells_list.Count;
             List<Cell> removeList = new List<Cell>();
-            for(int i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 StartCoroutine(Cells_list[i].StartProcess());
+                //Cells_list[i].StartProcess2();
                 if (Cells_list[i].State == CellState.Still && Cells_list[i].OldState == CellState.Still)
                     removeList.Add(Cells_list[i]);
-                
+
             }
 
             foreach (Cell cell in removeList)
             {
                 Cells_list.Remove(cell);
-            }
+            }        
         }
 
         public void Initiate(int X, int Y, int Z)
@@ -69,7 +104,8 @@ namespace VoxelWater
             this.Y = Y; 
             this.Z = Z;
 
-            //Manager.PutIntoGridManager(X, Y, Z, this);
+            //if(X==0 && Y==0 && Z==0)
+            //    Manager.PutIntoGridManager(X, Y, Z, this);
         }
 
         public Cell CreateCell(float x, float y, float z, int volume)

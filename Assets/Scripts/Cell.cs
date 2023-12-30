@@ -74,6 +74,7 @@ namespace VoxelWater
         public bool SurroundedEmpty;
 
 
+
         private void Start()
         {
             Initiate();
@@ -102,8 +103,11 @@ namespace VoxelWater
 
         public void Initiate()
         {
-            Diagnostics = GameObject.Find("Diagnostic").GetComponent<Diagnostic>();
-            Diagnostics.IncreaseCellCount();
+            if(Diagnostics == null)
+            {
+                Diagnostics = GameObject.Find("Diagnostic").GetComponent<Diagnostic>();
+                Diagnostics.IncreaseCellCount();
+            }
 
             if (GridObject != null)
                 Grid = GridObject.GetComponent<Grid>();
@@ -187,7 +191,62 @@ namespace VoxelWater
 
             yield return null;
         }
-        
+
+        public void StartProcess2()
+        {
+            if (State == CellState.Flow || State != CellState.Fall)
+            {
+                Grid.UpdateNeighbours(this);
+            }
+            
+            OldState = State;
+            if (!RemoveWater && !CreateWater) SetState();
+            
+            //RenderMesh();
+            
+            //ChangeMaterial();
+            
+            switch (State)
+            {
+                case CellState.Flow:
+                    Flow();
+                    break;
+                case CellState.Pressured:
+                    Pressured();
+                    break;
+                case CellState.Shallow:
+                    Shallow();
+                    break;
+                case CellState.Fall:
+                    Fall();
+                    break;
+                case CellState.Pushed:
+                    Pushed();
+                    break;
+                case CellState.Destroy:
+                    //Destroy();
+                    break;
+                case CellState.Merge:
+                    //Merge();
+                    break;
+                case CellState.Remove:
+                    //Remove();
+                    break;
+                case CellState.Create:
+                    Create(5);
+                    break;
+                case CellState.Empty:
+                    //Destroy();
+                    break;
+            }
+
+            if (State != CellState.Still)
+            {
+                Grid.UpdateNeighbours(this);
+            }
+            
+        }
+
         private void Create(int volume)
         {
             int[] sides = getSideColliders();

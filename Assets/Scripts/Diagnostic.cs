@@ -23,6 +23,9 @@ public class Diagnostic : MonoBehaviour
 
     Stopwatch timer;
 
+    public bool stopWithCount = false;
+    public int maxCount = 0;
+
 
     void Start()
     {
@@ -55,7 +58,7 @@ public class Diagnostic : MonoBehaviour
         timer.Restart();
         timer.Start();
 
-        if (totalElapsedTime >= QuitTime)
+        if (totalElapsedTime >= QuitTime || (stopWithCount && CellCount >= maxCount))
         {
             Debug.Log("quit");
             EditorApplication.isPlaying = false;
