@@ -637,7 +637,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 389990241}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -734,7 +734,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 536753252}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -1025,7 +1025,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 560661967}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -1209,8 +1209,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GridPrefab: {fileID: 746341858178554276, guid: c2db4ba07592d2649876062b0d6b83c6, type: 3}
   GridSize: 3
-  GridOffset: 50
-  GridManagerSize: 101
+  GridOffset: 75
+  GridManagerSize: 151
 --- !u!1 &799920929
 GameObject:
   m_ObjectHideFlags: 0
@@ -1265,7 +1265,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 799920929}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -1578,14 +1578,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.25042716, y: 0.6612762, z: -0.25042722, w: 0.6612762}
-  m_LocalPosition: {x: -13.61, y: 11.6, z: -1.07}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -22.7, z: -79.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 41.484, y: 90, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &990980006
 GameObject:
   m_ObjectHideFlags: 0
@@ -1906,10 +1906,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34a33a669eb872644abb4ca61e3e754b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  filename: 3.csv
+  filename: test.csv
   CellCount: 0
   QuitTime: 999
-  stopWithCount: 1
+  stopWithCount: 0
   maxCount: 132651
 --- !u!4 &1045088966
 Transform:
@@ -2885,7 +2885,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1992947846}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1

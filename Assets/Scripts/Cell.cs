@@ -13,7 +13,7 @@ namespace VoxelWater
     {
         Flow, //when water has volume and can flow
         Still, //when water doesnt have volume and cant flow
-        Pressured, //when water has volume, but cant flow
+        Pressured, //when water has volume, but cant flow// currently not used
         Shallow, //when water doesnt have volume, but can flow
         Fall, //no collider or water under
         Empty, //volume is 0 and neighbouring blocks want to fill its place
@@ -190,6 +190,58 @@ namespace VoxelWater
             }
 
             yield return null;
+        }
+
+        public void StartProcessNoCoroutine()
+        {
+            if (State == CellState.Flow || State != CellState.Fall)
+            {
+                Grid.UpdateNeighbours(this);
+            }
+
+            OldState = State;
+            if (!RemoveWater && !CreateWater) SetState();
+            RenderMesh();
+            ChangeMaterial();
+
+            switch (State)
+            {
+                case CellState.Flow:
+                    Flow();
+                    break;
+                case CellState.Pressured:
+                    Pressured();
+                    break;
+                case CellState.Shallow:
+                    Shallow();
+                    break;
+                case CellState.Fall:
+                    Fall();
+                    break;
+                case CellState.Pushed:
+                    Pushed();
+                    break;
+                case CellState.Destroy:
+                    Destroy();
+                    break;
+                case CellState.Merge:
+                    Merge();
+                    break;
+                case CellState.Remove:
+                    Remove();
+                    break;
+                case CellState.Create:
+                    Create(5);
+                    break;
+                case CellState.Empty:
+                    Destroy();
+                    break;
+            }
+
+            if (State != CellState.Still)
+            {
+                Grid.UpdateNeighbours(this);
+            }
         }
 
         public void StartProcess2()

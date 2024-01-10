@@ -78,8 +78,8 @@ namespace VoxelWater
             List<Cell> removeList = new List<Cell>();
             for (int i = 0; i < count; i++)
             {
-                StartCoroutine(Cells_list[i].StartProcess());
-                //Cells_list[i].StartProcess2();
+                //StartCoroutine(Cells_list[i].StartProcess());
+                Cells_list[i].StartProcessNoCoroutine();
                 if (Cells_list[i].State == CellState.Still && Cells_list[i].OldState == CellState.Still)
                     removeList.Add(Cells_list[i]);
 
