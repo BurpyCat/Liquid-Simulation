@@ -1,14 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using Unity.VisualScripting;
-using Newtonsoft.Json.Linq;
-using Unity.Jobs;
-using System.Threading.Tasks;
-using System.Diagnostics;
-using Debug = UnityEngine.Debug;
-using System.Threading;
 
 namespace VoxelWater
 {
@@ -33,8 +25,6 @@ namespace VoxelWater
         //(GridManagerSize - 1) /2
         public int GridOffset = 50;
 
-        Thread thread;
-        bool update = true;
 
         public bool first = false;
 
@@ -48,38 +38,20 @@ namespace VoxelWater
                 
         }
 
-        void Start()
-        {
-            //thread = new Thread(new ThreadStart(UpdateCells));
-            //thread.Start();
-        }
-
         void Update()
         {
 
             UpdateCells();
 
         }
-        /*
-        private void OnDestroy()
-        {
-            update = false;
-            thread.Abort();
-        }
-        private void OnApplicationQuit()
-        {
-            update = false;
-            thread.Abort();
-        }
-        */
+ 
         public void UpdateCells()
         {
             int count = Cells_list.Count;
             List<Cell> removeList = new List<Cell>();
             for (int i = 0; i < count; i++)
             {
-                //StartCoroutine(Cells_list[i].StartProcess());
-                Cells_list[i].StartProcessNoCoroutine();
+                Cells_list[i].StartProcess();
                 if (Cells_list[i].State == CellState.Still && Cells_list[i].OldState == CellState.Still)
                     removeList.Add(Cells_list[i]);
 
@@ -132,7 +104,6 @@ namespace VoxelWater
             return cellScript;
         }
 
-        //maybe change X Y and Z
         public Grid GetGrid(int Xorg, int Yorg, int Zorg)
         {
             int x = Xorg + Offset - (X * GridSize);

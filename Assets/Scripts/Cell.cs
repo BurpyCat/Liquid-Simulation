@@ -1,11 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 using System;
-using Unity.VisualScripting;
-using Unity.Jobs;
-using UnityEditor.Experimental.GraphView;
 
 namespace VoxelWater
 {
@@ -29,9 +23,9 @@ namespace VoxelWater
     {
         public GameObject GridObject;
 
+        //special state enable
         public bool CreateWater = false;
         public bool RemoveWater = false;
-        public int DelayTime = 40;
 
         // main info
         public float X;
@@ -73,26 +67,10 @@ namespace VoxelWater
 
         public bool SurroundedEmpty;
 
-
-
         private void Start()
         {
             Initiate();
         }
-
-        // Update is called once per frame
-        /*
-        void Update()
-        {
-            //if (Delay == DelayTime)
-            //{
-                StartProcess();
-              //  Delay = 0;
-            //}
-            //else
-            //    Delay++;
-        }
-        */
 
         public bool Equals(Cell other)
         {
@@ -103,6 +81,7 @@ namespace VoxelWater
 
         public void Initiate()
         {
+            //diagnostics
             if(Diagnostics == null)
             {
                 Diagnostics = GameObject.Find("Diagnostic").GetComponent<Diagnostic>();
@@ -138,61 +117,7 @@ namespace VoxelWater
             ChangeMaterial();
         }
 
-        public IEnumerator StartProcess()
-        {
-            if (State == CellState.Flow || State != CellState.Fall)
-            {
-                Grid.UpdateNeighbours(this);
-            }
-            
-            OldState = State;
-            if (!RemoveWater && !CreateWater) SetState();
-            RenderMesh();
-            ChangeMaterial();
-
-            switch (State)
-            {
-                case CellState.Flow:
-                    Flow();
-                    break;
-                case CellState.Pressured:
-                    Pressured();
-                    break;
-                case CellState.Shallow:
-                    Shallow();
-                    break;
-                case CellState.Fall:
-                    Fall();
-                    break;
-                case CellState.Pushed:
-                    Pushed();
-                    break;
-                case CellState.Destroy:
-                    Destroy();
-                    break;
-                case CellState.Merge:
-                    Merge();
-                    break;
-                case CellState.Remove:
-                    Remove();
-                    break;
-                case CellState.Create:
-                    Create(5);
-                    break;
-                case CellState.Empty:
-                    Destroy();
-                    break;
-            }
-
-            if (State != CellState.Still)
-            {
-                Grid.UpdateNeighbours(this);
-            }
-
-            yield return null;
-        }
-
-        public void StartProcessNoCoroutine()
+        public void StartProcess()
         {
             if (State == CellState.Flow || State != CellState.Fall)
             {
@@ -242,61 +167,6 @@ namespace VoxelWater
             {
                 Grid.UpdateNeighbours(this);
             }
-        }
-
-        public void StartProcess2()
-        {
-            if (State == CellState.Flow || State != CellState.Fall)
-            {
-                Grid.UpdateNeighbours(this);
-            }
-            
-            OldState = State;
-            if (!RemoveWater && !CreateWater) SetState();
-            
-            //RenderMesh();
-            
-            //ChangeMaterial();
-            
-            switch (State)
-            {
-                case CellState.Flow:
-                    Flow();
-                    break;
-                case CellState.Pressured:
-                    Pressured();
-                    break;
-                case CellState.Shallow:
-                    Shallow();
-                    break;
-                case CellState.Fall:
-                    Fall();
-                    break;
-                case CellState.Pushed:
-                    Pushed();
-                    break;
-                case CellState.Destroy:
-                    //Destroy();
-                    break;
-                case CellState.Merge:
-                    //Merge();
-                    break;
-                case CellState.Remove:
-                    //Remove();
-                    break;
-                case CellState.Create:
-                    Create(5);
-                    break;
-                case CellState.Empty:
-                    //Destroy();
-                    break;
-            }
-
-            if (State != CellState.Still)
-            {
-                Grid.UpdateNeighbours(this);
-            }
-            
         }
 
         private void Create(int volume)
@@ -722,13 +592,6 @@ namespace VoxelWater
 
             RaycastHit[] colliders = Physics.SphereCastAll(currentPosition, 0.25f, checkDirection, 1.20f);
 
-            /*
-            foreach(RaycastHit coll in colliders)
-            {
-                Debug.Log("+");
-            }*/
-
-            //Debug.Log(colliders.Length);
             if (colliders.Length > 0)
             {
                 collider = true;
