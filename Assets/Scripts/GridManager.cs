@@ -1,13 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace VoxelWater
 {
     public class GridManager : MonoBehaviour
     {
-        GameObject FirstGrid;
-
         Grid[,,] Grids;
         public GameObject GridPrefab;
         //(GridSize -1 )/2
@@ -23,13 +19,6 @@ namespace VoxelWater
             Grids = new Grid[GridManagerSize, GridManagerSize, GridManagerSize];
             GridOffset = (GridManagerSize - 1) / 2;
         }
-        // Start is called before the first frame update
-        void Start()
-        {
-            //Grid grid = FirstGrid.GetComponent<Grid>();
-            //Grids[Offset, Offset, Offset] = grid;
-        }
-
 
         public Grid GetGrid(int x, int y, int z, int Xorg, int Yorg, int Zorg)
         {
@@ -140,8 +129,6 @@ namespace VoxelWater
                 int newz = z + GridSize;
                 return Grids[X, Y, Z - 1].Cells[x, y, newz];
             }
-            //else
-            //    return Grids[X, Y, Z].Cells[x, y, z];
             return null;
         }
 
@@ -154,20 +141,12 @@ namespace VoxelWater
             gridScript.Initiate(X, Y, Z);
 
             PutIntoGridManager(X, Y, Z, gridScript);
-
-            //Grids[X, Y, Z] = gridScript;
         }
 
         public void PutIntoGridManager(int X, int Y, int Z, Grid grid)
         {
             //expansion?
             Grids[X+GridOffset, Y + GridOffset, Z + GridOffset] = grid;
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
-
         }
     }
 }

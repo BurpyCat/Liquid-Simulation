@@ -52,7 +52,7 @@ namespace VoxelWater
             for (int i = 0; i < count; i++)
             {
                 Cells_list[i].StartProcess();
-                if (Cells_list[i].State == CellState.Still && Cells_list[i].OldState == CellState.Still)
+                if (Cells_list[i].Cellinfo.State == CellState.Still && Cells_list[i].Cellinfo.OldState == CellState.Still)
                     removeList.Add(Cells_list[i]);
 
             }
@@ -99,7 +99,7 @@ namespace VoxelWater
             Cell cellScript = newCell.GetComponent<Cell>();
 
             cellScript.Initiate();
-            cellScript.Volume = volume;
+            cellScript.Cellinfo.Volume = volume;
 
             return cellScript;
         }
@@ -124,20 +124,21 @@ namespace VoxelWater
 
         public void PutIntoGrid(Cell cell)
         {
-            int x = (int)cell.X + Offset - (X * GridSize);
-            int y = (int)cell.Y + Offset - (Y * GridSize);
-            int z = (int)cell.Z + Offset - (Z * GridSize);
+            int x = (int)cell.Cellinfo.X + Offset - (X * GridSize);
+            int y = (int)cell.Cellinfo.Y + Offset - (Y * GridSize);
+            int z = (int)cell.Cellinfo.Z + Offset - (Z * GridSize);
 
             Cells[x, y, z] = cell;
             Cells_list.Add(cell);
             cell.Grid = this;
         }
 
+        //should not need this
         public void UpdateNeighbours(Cell cell)
         {
-            int x = (int)cell.X + Offset - (X * GridSize);
-            int y = (int)cell.Y + Offset - (Y * GridSize);
-            int z = (int)cell.Z + Offset - (Z * GridSize);
+            int x = (int)cell.Cellinfo.X + Offset - (X * GridSize);
+            int y = (int)cell.Cellinfo.Y + Offset - (Y * GridSize);
+            int z = (int)cell.Cellinfo.Z + Offset - (Z * GridSize);
             
             //front
             if (x + 1 >= GridSize)
@@ -169,16 +170,37 @@ namespace VoxelWater
                 cell.Top = Manager.UpdateNeighbours(x, y + 1, z, X, Y, Z);
             else
                 cell.Top = Cells[x, y + 1, z];
+
+            UpdateNeighboursStates(cell);
         }
 
+        //expand
+        public void UpdateNeighboursStates(Cell cell)
+        {
+            if (cell.Front != null)
+                cell.Cellinfo.FrontState = cell.Front.Cellinfo.State;
+            if (cell.Right != null)
+                cell.Cellinfo.RightState = cell.Right.Cellinfo.State;
+            if (cell.Back != null)
+                cell.Cellinfo.BackState = cell.Back.Cellinfo.State;
+            if (cell.Left != null)
+                cell.Cellinfo.LeftState = cell.Left.Cellinfo.State;
+            if (cell.Bottom != null)
+                cell.Cellinfo.BottomState = cell.Bottom.Cellinfo.State;
+            if (cell.Top != null)
+                cell.Cellinfo.TopState = cell.Top.Cellinfo.State;
+        }
+
+        //not used
         public void DeleteCell(Cell cell)
         {
-            int X = (int)cell.X + Offset;
-            int Y = (int)cell.Y + Offset;
-            int Z = (int)cell.Z + Offset;
+            int X = (int)cell.Cellinfo.X + Offset;
+            int Y = (int)cell.Cellinfo.Y + Offset;
+            int Z = (int)cell.Cellinfo.Z + Offset;
             Cells[X, Y, Z] = null;
         }
 
+        //not used
         private void ExpandGrid()
         {
             int addOffset = 50;
