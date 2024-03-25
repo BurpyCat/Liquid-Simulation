@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Dynamic;
 
 namespace VoxelWater
 {
@@ -87,7 +88,9 @@ namespace VoxelWater
 
             Cell cellScript = grid.CreateCellObject(x, y, z, volume);
             grid.PutIntoGrid(cellScript);
-            grid.UpdateNeighbours(cellScript);
+            grid.GetNeighboursInfo(cellScript);
+            //grid.UpdateNeighboursInfo(cellScript);
+            
 
             return cellScript;
         }
@@ -134,47 +137,70 @@ namespace VoxelWater
         }
 
         //should not need this
+        /*
         public void UpdateNeighbours(Cell cell)
         {
             int x = (int)cell.Cellinfo.X + Offset - (X * GridSize);
             int y = (int)cell.Cellinfo.Y + Offset - (Y * GridSize);
             int z = (int)cell.Cellinfo.Z + Offset - (Z * GridSize);
-            
-            //front
-            if (x + 1 >= GridSize)
-                cell.Front = Manager.UpdateNeighbours(x + 1, y, z, X, Y, Z);
-            else
-                cell.Front = Cells[x + 1, y, z];
-            //right
-            if (z - 1 <= -1)
-                cell.Right = Manager.UpdateNeighbours(x, y, z - 1, X, Y, Z);
-            else
-                cell.Right = Cells[x, y, z - 1];
-            //back
-            if (x-1 <= -1)
-                cell.Back = Manager.UpdateNeighbours(x - 1, y, z, X, Y, Z);
-            else
-                cell.Back = Cells[x - 1, y, z];
-            //left 
-            if (z+1 >= GridSize)
-                cell.Left = Manager.UpdateNeighbours(x, y, z + 1, X, Y, Z);
-            else
-                cell.Left = Cells[x, y, z + 1];     
-            //bottom
-            if (y - 1 <= -1)
-                cell.Bottom = Manager.UpdateNeighbours(x, y - 1, z, X, Y, Z);
-            else
-                cell.Bottom = Cells[x, y - 1, z];
-            //top
-            if (y + 1 >= GridSize)
-                cell.Top = Manager.UpdateNeighbours(x, y + 1, z, X, Y, Z);
-            else
-                cell.Top = Cells[x, y + 1, z];
+
+            cell.Front = Manager.GetCell(x + 1, y, z, X, Y, Z);
+            cell.Right = Manager.GetCell(x, y, z - 1, X, Y, Z);
+            cell.Back = Manager.GetCell(x - 1, y, z, X, Y, Z);
+            cell.Left = Manager.GetCell(x, y, z + 1, X, Y, Z);
+            cell.Bottom = Manager.GetCell(x, y - 1, z, X, Y, Z);
+            cell.Top = Manager.GetCell(x, y + 1, z, X, Y, Z);
 
             UpdateNeighboursStates(cell);
         }
+        */
+
+        public void GetNeighboursInfo(Cell cell)
+        {
+            int x = (int)cell.Cellinfo.X + Offset - (X * GridSize);
+            int y = (int)cell.Cellinfo.Y + Offset - (Y * GridSize);
+            int z = (int)cell.Cellinfo.Z + Offset - (Z * GridSize);
+
+            //update through manager in case the cell is in another grid
+            Cell Front = Manager.GetCell(x + 1, y, z, X, Y, Z);
+            Cell Right = Manager.GetCell(x, y, z - 1, X, Y, Z);
+            Cell Back = Manager.GetCell(x - 1, y, z, X, Y, Z);
+            Cell Left = Manager.GetCell(x, y, z + 1, X, Y, Z);
+            Cell Bottom = Manager.GetCell(x, y - 1, z, X, Y, Z);
+            Cell Top = Manager.GetCell(x, y + 1, z, X, Y, Z);
+
+            GetNeighboursInfo(out cell.Cellinfo.FrontState, out cell.Cellinfo.FrontVolume, Front);
+            GetNeighboursInfo(out cell.Cellinfo.RightState, out cell.Cellinfo.RightVolume, Right);
+            GetNeighboursInfo(out cell.Cellinfo.BackState, out cell.Cellinfo.BackVolume, Back);
+            GetNeighboursInfo(out cell.Cellinfo.LeftState, out cell.Cellinfo.LeftVolume, Left);
+            GetNeighboursInfo(out cell.Cellinfo.BottomState, out cell.Cellinfo.BottomVolume, Bottom);
+            GetNeighboursInfo(out cell.Cellinfo.TopState, out cell.Cellinfo.TopVolume, Top);
+        }
+
+        public void UpdateNeighboursInfo(Cell cell)
+        {
+            int x = (int)cell.Cellinfo.X + Offset - (X * GridSize);
+            int y = (int)cell.Cellinfo.Y + Offset - (Y * GridSize);
+            int z = (int)cell.Cellinfo.Z + Offset - (Z * GridSize);
+
+            //update through manager in case the cell is in another grid
+            Cell Front = Manager.GetCell(x + 1, y, z, X, Y, Z);
+            Cell Right = Manager.GetCell(x, y, z - 1, X, Y, Z);
+            Cell Back = Manager.GetCell(x - 1, y, z, X, Y, Z);
+            Cell Left = Manager.GetCell(x, y, z + 1, X, Y, Z);
+            Cell Bottom = Manager.GetCell(x, y - 1, z, X, Y, Z);
+            Cell Top = Manager.GetCell(x, y + 1, z, X, Y, Z);
+
+            UpdateNeighboursInfo(cell.Cellinfo.FrontVolume, Front);
+            UpdateNeighboursInfo(cell.Cellinfo.RightVolume, Right);
+            UpdateNeighboursInfo(cell.Cellinfo.BackVolume, Back);
+            UpdateNeighboursInfo(cell.Cellinfo.LeftVolume, Left);
+            UpdateNeighboursInfo(cell.Cellinfo.BottomVolume, Bottom);
+            UpdateNeighboursInfo(cell.Cellinfo.TopVolume, Top);
+        }
 
         //expand
+        /*
         public void UpdateNeighboursStates(Cell cell)
         {
             if (cell.Front != null)
@@ -190,6 +216,58 @@ namespace VoxelWater
             if (cell.Top != null)
                 cell.Cellinfo.TopState = cell.Top.Cellinfo.State;
         }
+        */
+
+        public void GetNeighboursInfo(out CellState state, out int volume, Cell cell)
+        {
+            if(cell == null)
+            {
+                state = CellState.None;
+                volume = -1;
+                return;
+            }
+            else
+            {
+                state = cell.Cellinfo.State;
+                volume = cell.Cellinfo.Volume;
+                return;
+            }
+        }
+
+        public void UpdateNeighboursInfo(int volume, Cell cell)
+        {
+            if (cell == null || volume == -1)
+            {
+                return;
+            }
+            else
+            {
+                cell.Cellinfo.Volume = volume;
+                return;
+            }
+        }
+
+        /*
+        public void UpdateNeighboursVolumes(Cell cell)
+        {
+            int x = (int)cell.Cellinfo.X + Offset - (X * GridSize);
+            int y = (int)cell.Cellinfo.Y + Offset - (Y * GridSize);
+            int z = (int)cell.Cellinfo.Z + Offset - (Z * GridSize);
+
+            if (cell.Front != null)
+                cell.Cellinfo.FrontVolume = Cells[x + 1, y, z].Cellinfo.Volume;
+            if (cell.Right != null)
+                cell.Cellinfo.RightState = Cells[x, y, z - 1];
+            if (cell.Back != null)
+                cell.Cellinfo.BackState = Cells[x - 1, y, z];
+            if (cell.Left != null)
+                cell.Cellinfo.LeftState = cell.Left.Cellinfo.State;
+            if (cell.Bottom != null)
+                cell.Cellinfo.BottomState = cell.Bottom.Cellinfo.State;
+            if (cell.Top != null)
+                cell.Cellinfo.TopState = cell.Top.Cellinfo.State;
+        }
+        */
 
         //not used
         public void DeleteCell(Cell cell)

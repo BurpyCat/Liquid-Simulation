@@ -71,7 +71,7 @@ namespace VoxelWater
             return null;
         }
 
-        public Cell UpdateNeighbours(int x, int y, int z, int Xorg, int Yorg, int Zorg)
+        public Cell GetCell(int x, int y, int z, int Xorg, int Yorg, int Zorg)
         {
             int X = Xorg + GridOffset;
             int Y = Yorg + GridOffset;
@@ -129,7 +129,7 @@ namespace VoxelWater
                 int newz = z + GridSize;
                 return Grids[X, Y, Z - 1].Cells[x, y, newz];
             }
-            return null;
+            return Grids[X, Y, Z].Cells[x, y, z];
         }
 
         public void CreateGrid(int X, int Y, int Z)

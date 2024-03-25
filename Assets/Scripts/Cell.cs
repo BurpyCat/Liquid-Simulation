@@ -42,6 +42,14 @@ namespace VoxelWater
         public CellState LeftState;
         public CellState FrontState;
         public CellState BackState;
+
+        //neighbour volume
+        public int TopVolume;
+        public int BottomVolume;
+        public int RightVolume;
+        public int LeftVolume;
+        public int FrontVolume;
+        public int BackVolume;
     }
 
     public class Cell : MonoBehaviour, IEquatable<Cell>
@@ -63,12 +71,14 @@ namespace VoxelWater
         //have CellStates instead
         //that are manually updates outside of thread?      
         //remove
+        /*
         public Cell Top;
         public Cell Bottom;
         public Cell Right;
         public Cell Left;
         public Cell Front;
-        public Cell Back;    
+        public Cell Back;  
+        */
 
         //extra
         public MeshRenderer Mesh;
@@ -113,6 +123,16 @@ namespace VoxelWater
             Cellinfo.Y = transform.position.y;
             Cellinfo.Z = transform.position.z;
 
+            //new
+            /*
+            Cellinfo.TopVolume = 0;
+            Cellinfo.BottomVolume = 0;
+            Cellinfo.RightVolume = 0;
+            Cellinfo.LeftVolume = 0;
+            Cellinfo.FrontVolume = 0;
+            Cellinfo.BackVolume = 0;
+            */
+
             if (RemoveWater)
             {
                 Cellinfo.State = CellState.Remove;
@@ -132,24 +152,28 @@ namespace VoxelWater
         }
 
         //move to Grid
+
         public void StartProcess()
         {
-            if (Cellinfo.State == CellState.Flow || Cellinfo.State != CellState.Fall)
-            {
-                Grid.UpdateNeighbours(this);
-            }
+            //if (Cellinfo.State == CellState.Flow || Cellinfo.State != CellState.Fall)
+            //{
+                Grid.GetNeighboursInfo(this);
+                //Grid.UpdateNeighboursInfo(this);
+                
+            //}
 
             Cellinfo.OldState = Cellinfo.State;
             if (!RemoveWater && !CreateWater) CellUtility.SetState(ref Cellinfo);
             RenderMesh();
             ChangeMaterial();
 
-            CellUtility.ActivateState(ref Cellinfo, Grid, ref Front, ref Right, ref Back, ref Left, ref Bottom);
+            CellUtility.ActivateState(ref Cellinfo, Grid);
 
-            if (Cellinfo.State != CellState.Still)
-            {
-                Grid.UpdateNeighbours(this);
-            }
+            //if (Cellinfo.State != CellState.Still)
+            //{
+                Grid.UpdateNeighboursInfo(this);
+                //Grid.UpdateNeighboursInfo(this);
+            //}
         }
 
         private void ChangeMaterial()
