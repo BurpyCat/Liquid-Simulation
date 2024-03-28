@@ -123,16 +123,6 @@ namespace VoxelWater
             Cellinfo.Y = transform.position.y;
             Cellinfo.Z = transform.position.z;
 
-            //new
-            /*
-            Cellinfo.TopVolume = 0;
-            Cellinfo.BottomVolume = 0;
-            Cellinfo.RightVolume = 0;
-            Cellinfo.LeftVolume = 0;
-            Cellinfo.FrontVolume = 0;
-            Cellinfo.BackVolume = 0;
-            */
-
             if (RemoveWater)
             {
                 Cellinfo.State = CellState.Remove;
@@ -141,6 +131,8 @@ namespace VoxelWater
             {
                 Cellinfo.State = CellState.Create;
                 Grid.PutIntoGrid(this);
+                Grid.PutIntoInfoList(this);
+                Grid.PutIntoInfoGrid(this);
             }
             else
             {
@@ -152,7 +144,7 @@ namespace VoxelWater
         }
 
         //move to Grid
-
+        /*
         public void StartProcess()
         {
             //if (Cellinfo.State == CellState.Flow || Cellinfo.State != CellState.Fall)
@@ -162,10 +154,9 @@ namespace VoxelWater
                 
             //}
 
-            Cellinfo.OldState = Cellinfo.State;
+            
             if (!RemoveWater && !CreateWater) CellUtility.SetState(ref Cellinfo);
-            RenderMesh();
-            ChangeMaterial();
+            
 
             CellUtility.ActivateState(ref Cellinfo, Grid);
 
@@ -174,6 +165,13 @@ namespace VoxelWater
                 Grid.UpdateNeighboursInfo(this);
                 //Grid.UpdateNeighboursInfo(this);
             //}
+        }
+        */
+
+        public void RenderCell()
+        {
+            RenderMesh();
+            ChangeMaterial();
         }
 
         private void ChangeMaterial()

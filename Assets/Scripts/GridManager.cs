@@ -83,6 +83,7 @@ namespace VoxelWater
                     return null;
 
                 int newx = x - GridSize;
+                //PutIntoGridInfo(Grids[X,Y,Z], Grids[X + 1, Y, Z].Cells[newx, y, z], x,y,z);
                 return Grids[X + 1, Y, Z].Cells[newx, y,z];
             }
             else if (x <= -1)
@@ -91,6 +92,7 @@ namespace VoxelWater
                     return null;
                 
                 int newx = x + GridSize;
+                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X - 1, Y, Z].Cells[newx, y, z], x, y, z);
                 return Grids[X - 1, Y, Z].Cells[newx, y, z];
             }
             else if (y >= GridSize)
@@ -99,6 +101,7 @@ namespace VoxelWater
                     return null;
 
                 int newy = y - GridSize;
+                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X, Y + 1, Z].Cells[x, newy, z], x, y, z);
                 return Grids[X, Y + 1, Z].Cells[x, newy, z];
             }
             else if (y <= -1)
@@ -107,6 +110,7 @@ namespace VoxelWater
                     return null;
 
                 int newy = y + GridSize;
+                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X, Y - 1, Z].Cells[x, newy, z], x, y, z);
                 return Grids[X, Y - 1, Z].Cells[x, newy, z];
             }
             else if (z >= GridSize)
@@ -117,6 +121,7 @@ namespace VoxelWater
                 }
 
                 int newz = z - GridSize;
+                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X, Y, Z + 1].Cells[x, y, newz], x, y, z);
                 return Grids[X, Y, Z + 1].Cells[x, y, newz];
             }
             else if (z <= -1)
@@ -127,9 +132,21 @@ namespace VoxelWater
                 }
 
                 int newz = z + GridSize;
+                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X, Y, Z - 1].Cells[x, y, newz], x, y, z);
                 return Grids[X, Y, Z - 1].Cells[x, y, newz];
             }
             return Grids[X, Y, Z].Cells[x, y, z];
+        }
+
+        //temporary
+        public void PutIntoGridInfo(Grid grid, Cell cell, int x, int y, int z)
+        {
+            if (cell == null)
+                return;
+            else
+            {
+                grid.CellsInfo[x + 1, y + 1, z + 1] = cell.Cellinfo;
+            }
         }
 
         public void CreateGrid(int X, int Y, int Z)
