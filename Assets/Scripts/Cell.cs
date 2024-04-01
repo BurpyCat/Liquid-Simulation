@@ -21,7 +21,7 @@ namespace VoxelWater
     }
 
     [Serializable]
-    public struct CellInfo
+    public struct CellInfo : IEquatable<CellInfo>
     {
         // main info
         public float X;
@@ -29,7 +29,7 @@ namespace VoxelWater
         public float Z;
         public int Volume;
         //grid number?
-        public int GridNumber;
+        //public int GridNumber;
         public CellState State;
         public CellState OldState;
 
@@ -50,6 +50,24 @@ namespace VoxelWater
         public int LeftVolume;
         public int FrontVolume;
         public int BackVolume;
+
+        public override bool Equals(object? obj) => obj is CellInfo other && this.Equals(other);
+
+        public bool Equals(CellInfo cell) => X == cell.X && Y == cell.Y && Z == cell.Z &&
+                                            Volume == cell.Volume && State == cell.State && OldState == cell.OldState &&
+                                            TopState == cell.TopState && TopVolume == cell.TopVolume &&
+                                            BottomState == cell.BottomState && BottomVolume == cell.BottomVolume &&
+                                            RightState == cell.RightState && RightVolume == cell.RightVolume &&
+                                            LeftState == cell.LeftState && LeftVolume == cell.LeftVolume &&
+                                            FrontState == cell.FrontState && FrontVolume == cell.FrontVolume &&
+                                            BackState == cell.BackState && BackVolume == cell.BackVolume;
+
+
+        public override int GetHashCode() => (X, Y, Z).GetHashCode();
+
+        public static bool operator ==(CellInfo cell1, CellInfo cell2) => cell1.Equals(cell2);
+
+        public static bool operator !=(CellInfo cell1, CellInfo cell2) => !(cell1 == cell2);
     }
 
     public class Cell : MonoBehaviour, IEquatable<Cell>
@@ -130,6 +148,7 @@ namespace VoxelWater
             else if (CreateWater)
             {
                 Cellinfo.State = CellState.Create;
+                Cellinfo.Volume = 10;
                 Grid.PutIntoGrid(this);
                 Grid.PutIntoInfoList(this);
                 Grid.PutIntoInfoGrid(this);

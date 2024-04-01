@@ -1,52 +1,13 @@
+using System.Collections.Generic;
 using System.Dynamic;
+using System.Linq;
 using UnityEngine;
 
 namespace VoxelWater
 {
     static public class CellUtility
     {
-        static public CellInfo emptyCell = new CellInfo(){State = CellState.None};
-        static public void SetState(ref CellInfo cellinfo)
-        {
-            if (cellinfo.State == CellState.Create || cellinfo.State == CellState.Remove)
-                return;
-            
-            cellinfo.OldState = cellinfo.State;
-
-            int[] sides = getSideColliders(cellinfo);
-            int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
-
-            bool down = ((cellinfo.BottomState == CellState.None || cellinfo.BottomState == CellState.Empty) && !ColliderExists(cellinfo, 0, -1, 0));
-
-            //Cell emptyNeighbour = GetEmptyNeighbour(ref cellinfo, front, right, back, left, bottom);
-            bool surroundedByEmpty = SurroundedByEmpty(cellinfo);
-
-            if (surroundedByEmpty && cellinfo.Volume == 0)
-                cellinfo.State = CellState.Destroy;
-            else if (cellinfo.Volume == 0)
-                cellinfo.State = CellState.Empty;
-            else if (down)
-                cellinfo.State = CellState.Fall;
-            //else if (emptyNeighbour != null && (bottom==null || bottom.State != CellState.Still))
-            //{
-            //    State = CellState.Pushed;
-            //    //to not have stuck blocks
-            //    if(OldState == CellState.Empty)
-            //        State = CellState.Pressured;
-            //} 
-            else if (sum > 0 && cellinfo.Volume > 1)
-                cellinfo.State = CellState.Flow;
-            else if (cellinfo.BottomState != CellState.None &&
-                (cellinfo.BottomState == CellState.Shallow))
-                cellinfo.State = CellState.Merge;
-            else if (sum == 0 && cellinfo.Volume == 1)
-                cellinfo.State = CellState.Still;
-            else if (sum == 0 && cellinfo.Volume > 1)
-                cellinfo.State = CellState.Pressured;
-            else if (sum > 0 && cellinfo.Volume == 1)
-                cellinfo.State = CellState.Shallow;
-        }
-
+        static public CellInfo EmptyCell = new CellInfo() { State = CellState.None };
         static public CellInfo SetState(CellInfo cellinfo)
         {
             if (cellinfo.State == CellState.Create || cellinfo.State == CellState.Remove)
@@ -62,9 +23,9 @@ namespace VoxelWater
             //Cell emptyNeighbour = GetEmptyNeighbour(ref cellinfo, front, right, back, left, bottom);
             bool surroundedByEmpty = SurroundedByEmpty(cellinfo);
 
-            if (surroundedByEmpty && cellinfo.Volume == 0)
-                cellinfo.State = CellState.Destroy;
-            else if (cellinfo.Volume == 0)
+            //if (surroundedByEmpty && cellinfo.Volume == 0)
+            //    cellinfo.State = CellState.Destroy;
+            if (cellinfo.Volume == 0)
                 cellinfo.State = CellState.Empty;
             else if (down)
                 cellinfo.State = CellState.Fall;
@@ -96,12 +57,14 @@ namespace VoxelWater
             return cellinfo;
         }
 
-        static public void ActivateState(ref CellInfo cellinfo, Grid grid)
+        public static CellInfo ActivateStateInfo(CellInfo cellinfo, List<CellInfo> newCells)
         {
             switch (cellinfo.State)
             {
                 case CellState.Flow:
-                    Flow(ref cellinfo, grid);
+                    Debug.Log(cellinfo.X + " " + cellinfo.Y + " " + cellinfo.Z);
+                    Debug.Log("Flow");
+                    newCells.AddRange(Flow(ref cellinfo, cellinfo.Volume));
                     break;
                 case CellState.Pressured:
                     Pressured(ref cellinfo);
@@ -110,8 +73,18 @@ namespace VoxelWater
                     Shallow(ref cellinfo);
                     break;
                 case CellState.Fall:
-                    Fall(ref cellinfo, grid);
-                    break;
+                    CellInfo newCell = Fall(ref cellinfo);
+                    //write a func for isEmpty cell struct
+                    if(newCell.State == CellState.None)
+                    {
+                        Debug.Log("Fall");
+                        break;
+                    }                 
+                    else
+                    {
+                        newCells.Add(newCell);
+                        break;
+                    }
                 //case CellState.Pushed:
                 //Pushed();
                 //break;
@@ -125,68 +98,34 @@ namespace VoxelWater
                 //Remove();
                 //break;
                 case CellState.Create:
-                    Create(ref cellinfo, grid, 5);
+                    newCells.AddRange(Create(ref cellinfo, 5));
                     break;
                 case CellState.Empty:
                     Destroy();
                     break;
             }
-        }
-
-        //might be problems with ref?
-        public static CellInfo ActivateStateInfo(CellInfo cellinfo, Grid grid)
-        {
-            switch (cellinfo.State)
-            {
-                case CellState.Flow:
-                    Flow(ref cellinfo, grid);
-                    break;
-                case CellState.Pressured:
-                    Pressured(ref cellinfo);
-                    break;
-                case CellState.Shallow:
-                    Shallow(ref cellinfo);
-                    break;
-                case CellState.Fall:
-                    Fall(ref cellinfo, grid);
-                    break;
-                //case CellState.Pushed:
-                //Pushed();
-                //break;
-                case CellState.Destroy:
-                    Destroy();
-                    break;
-                case CellState.Merge:
-                    Merge(ref cellinfo);
-                    break;
-                //case CellState.Remove:
-                //Remove();
-                //break;
-                case CellState.Create:
-                    Create(ref cellinfo, grid, 5);
-                    break;
-                case CellState.Empty:
-                    Destroy();
-                    break;
-            }
-
             return cellinfo;
         }
 
-        static private void Create(ref CellInfo cellinfo, Grid grid, int volume)
+        static private List<CellInfo> Create(ref CellInfo cellinfo, int volume)
         {
             int[] sides = getSideColliders(cellinfo);
             int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
             if (sum == 0)
             {
                 FlowAll(ref cellinfo, volume);
+                return new List<CellInfo>();
             }
             else
-                Flow(ref cellinfo, grid);
+            {
+                return Flow(ref cellinfo, volume);
+            }    
         }
 
-        static private void Flow(ref CellInfo cellinfo, Grid grid, bool decreaseVolume = true)
+        static private List<CellInfo> Flow(ref CellInfo cellinfo, int cellVolume, bool decreaseVolume = true)
         {
+            List<CellInfo> newCells = new List<CellInfo>();
+
             //flow to sides
             //(front, right, back, left)
             int[] sides = getSideColliders(cellinfo); //five array
@@ -195,11 +134,10 @@ namespace VoxelWater
             int volumeEach = 0;
             int oldresidue = 0;
             int residue = 0;
-
             if (sum != 0)
             {
-                volumeEach = (cellinfo.Volume - 1) / sum;
-                residue = (cellinfo.Volume - 1) % sum;
+                volumeEach = (cellVolume - 1) / sum;
+                residue = (cellVolume - 1) % sum;
                 oldresidue = residue;
             }
 
@@ -215,9 +153,9 @@ namespace VoxelWater
                 if (volume > 0)
                 {
                     if (cellinfo.FrontState != CellState.None)
-                        cellinfo.FrontVolume += volume;
+                        cellinfo.FrontVolume += volume;     
                     else
-                        grid.CreateCell(cellinfo.X + 1, cellinfo.Y + 0, cellinfo.Z + 0, volume);
+                        newCells.Add(CreateNewCellBase((int)cellinfo.X + 1, (int)cellinfo.Y + 0, (int)cellinfo.Z + 0, volume, CellState.Fall));
                 }
             }
             //right
@@ -234,7 +172,7 @@ namespace VoxelWater
                     if (cellinfo.RightState != CellState.None)
                         cellinfo.RightVolume += volume;
                     else
-                        grid.CreateCell(cellinfo.X + 0, cellinfo.Y + 0, cellinfo.Z - 1, volume);
+                        newCells.Add(CreateNewCellBase((int)cellinfo.X + 0, (int)cellinfo.Y + 0, (int)cellinfo.Z - 1, volume, CellState.Fall));
                 }
             }
             //back
@@ -251,7 +189,7 @@ namespace VoxelWater
                     if (cellinfo.BackState != CellState.None)
                         cellinfo.BackVolume += volume;
                     else
-                        grid.CreateCell(cellinfo.X - 1, cellinfo.Y + 0, cellinfo.Z + 0, volume);
+                        newCells.Add(CreateNewCellBase((int)cellinfo.X - 1, (int)cellinfo.Y + 0, (int)cellinfo.Z + 0, volume, CellState.Fall));
                 }
             }
             //left
@@ -268,7 +206,7 @@ namespace VoxelWater
                     if (cellinfo.LeftState != CellState.None)
                         cellinfo.LeftVolume += volume;
                     else
-                        grid.CreateCell(cellinfo.X + 0, cellinfo.Y + 0, cellinfo.Z + 1, volume);
+                        newCells.Add(CreateNewCellBase((int)cellinfo.X + 0, (int)cellinfo.Y + 0, (int)cellinfo.Z + 1, volume, CellState.Fall));
                 }
             }
 
@@ -286,135 +224,26 @@ namespace VoxelWater
                     if (cellinfo.BottomState != CellState.None)
                         cellinfo.BottomVolume += volume;
                     else
-                        grid.CreateCell(cellinfo.X + 0, cellinfo.Y - 1, cellinfo.Z + 0, volume);
+                        newCells.Add(CreateNewCellBase((int)cellinfo.X + 0, (int)cellinfo.Y - 1, (int)cellinfo.Z + 0, volume, CellState.Fall));
                 }
             }
             if (decreaseVolume)
                 cellinfo.Volume = cellinfo.Volume - (sum * volumeEach + oldresidue);
+
+            return newCells;
         }
 
-        /*
-        static public void Create(ref CellInfo cellinfo, Grid grid, ref Cell front, ref Cell right, ref Cell back, ref Cell left, ref Cell bottom, int volume)
+        static private CellInfo CreateNewCellBase(int x, int y, int z, int volume, CellState state)
         {
-            int[] sides = getSideColliders(cellinfo);
-            int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
-            if (sum == 0)
+            return new CellInfo()
             {
-                FlowAll(ref cellinfo, volume);
-            }
-            else
-                Flow(ref cellinfo, grid, ref front, ref right, ref back, ref left, ref bottom);
+                X = x,
+                Y = y,
+                Z = z,
+                Volume = volume,
+                State = state
+            };
         }
-
-        //remove grid and cell use
-        static public void Flow(ref CellInfo cellinfo, Grid grid, ref Cell front, ref Cell right, ref Cell back, ref Cell left, ref Cell bottom, bool decreaseVolume = true)
-        {
-            //flow to sides
-            //(front, right, back, left)
-            int[] sides = getSideColliders(cellinfo); //five array
-
-            int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
-            int volumeEach = 0;
-            int oldresidue = 0;
-            int residue = 0;
-
-            if (sum != 0)
-            {
-                volumeEach = (cellinfo.Volume - 1) / sum;
-                residue = (cellinfo.Volume - 1) % sum;
-                oldresidue = residue;
-            }
-
-            //front
-            if (sides[0] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                {
-                    if (front != null)
-                        front.Cellinfo.Volume += volume;
-                    else
-                        front = grid.CreateCell(cellinfo.X + 1, cellinfo.Y + 0, cellinfo.Z + 0, volume);
-                }
-            }
-            //right
-            if (sides[1] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                {
-                    if (right != null)
-                        right.Cellinfo.Volume += volume;
-                    else
-                        right = grid.CreateCell(cellinfo.X + 0, cellinfo.Y + 0, cellinfo.Z - 1, volume);
-                }
-            }
-            //back
-            if (sides[2] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                {
-                    if (back != null)
-                        back.Cellinfo.Volume += volume;
-                    else
-                        back = grid.CreateCell(cellinfo.X - 1, cellinfo.Y + 0, cellinfo.Z + 0, volume);
-                }
-            }
-            //left
-            if (sides[3] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                {
-                    if (left != null)
-                        left.Cellinfo.Volume += volume;
-                    else
-                        left = grid.CreateCell(cellinfo.X + 0, cellinfo.Y + 0, cellinfo.Z + 1, volume);
-                }
-            }
-
-            //bottom
-            if (sides[4] == 1)
-            {
-                int volume = volumeEach;
-                if (residue != 0)
-                {
-                    --residue;
-                    volume += 1;
-                }
-                if (volume > 0)
-                {
-                    if (bottom != null)
-                        bottom.Cellinfo.Volume += volume;
-                    else
-                        bottom = grid.CreateCell(cellinfo.X + 0, cellinfo.Y - 1, cellinfo.Z + 0, volume);
-                }
-            }
-            if (decreaseVolume)
-                cellinfo.Volume = cellinfo.Volume - (sum * volumeEach + oldresidue);
-        }
-        */
 
         //remove grid and cell use
         static private void FlowAll(ref CellInfo cellinfo, int volume)
@@ -492,14 +321,21 @@ namespace VoxelWater
             //}
         }
 
-        //remove grid and bottom
-        static private void Fall(ref CellInfo cellinfo, Grid grid)
+        static CellInfo Fall(ref CellInfo cellinfo)
         {
             if (cellinfo.BottomState == CellState.None)
-                grid.CreateCell(cellinfo.X + 0, cellinfo.Y - 1, cellinfo.Z + 0, cellinfo.Volume);
+            {
+                CellInfo newCell = CreateNewCellBase((int)cellinfo.X + 0, (int)cellinfo.Y - 1, (int)cellinfo.Z + 0, cellinfo.Volume, CellState.Fall);
+                cellinfo.Volume = 0;
+                return newCell;
+            }   
             else
+            {
                 cellinfo.BottomVolume += cellinfo.Volume;
-            cellinfo.Volume = 0;
+                cellinfo.Volume = 0;
+                return EmptyCell;
+            }
+                
         }
 
         //remove cell
