@@ -1,11 +1,72 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Dynamic;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEditor.PackageManager;
 using UnityEngine;
 using VoxelWater;
 
 namespace VoxelWater
 {
+    public struct UpdateCellsParallel : IJobFor
+    {
+        //public NativeArray<CellInfo> Value;
+        //TO-DO flatten multi dimensional array...
+        public List<CellInfo> cellsList;
+        public CellInfo[,,] cells;
+        public GridInfo gridInfo;
+        public List<CellInfo> newCells;
+        public List<CellInfo> updatedCells;
+        public void Execute(int i)
+        {
+            List<CellInfo> newCellsTemp = new List<CellInfo>();
+            CellInfo newCell = cellsList[i];
+            //update local cells info
+            newCell = GridUtility.GetCellInfo(newCell, cells, gridInfo);
+
+            //if empty, skip
+            if (newCell.State == CellState.None)
+                return;
+            //get info from neighbors
+            newCell = GridUtility.GetNeighboursInfo(newCell, cells, gridInfo);
+            //set state
+            newCell = CellUtility.SetState(newCell);
+
+            //check if states activation is needed
+            if (newCell.OldState == newCell.State &&
+            (newCell.State == CellState.Still || newCell.State == CellState.Empty))
+            {
+                GridUtility.UpdateInfoGrid(newCell, cells, gridInfo);
+                cellsList[i] = newCell;
+                return;
+            }
+            //activate state
+            newCell = CellUtility.ActivateStateInfo(newCell, newCellsTemp);
+            //check if any updating is needed
+            if (newCell == cellsList[i] && newCellsTemp.Count == 0)
+            {
+                return;
+            }
+
+            //put into array to not create duplicates
+            foreach (var cell in newCellsTemp)
+            {
+                GridUtility.UpdateInfoGrid(cell, cells, gridInfo);
+            }
+
+            //get ONLY new created cells info
+            newCell = GridUtility.GetNewNeighboursInfo(newCell, cells, gridInfo);
+            //update neighbors
+            GridUtility.UpdateNeighboursInfo(newCell, cells, gridInfo);
+            //update info grid locally
+            GridUtility.UpdateInfoGrid(newCell, cells, gridInfo);
+            //add to global list
+            newCells.AddRange(newCellsTemp);
+            updatedCells.Add(newCell);
+            cellsList[i] = newCell;
+        }
+    }
     static public class GridUtility
     {
         static public void UpdateInfoGrid(CellInfo cell, CellInfo[,,] cells, GridInfo gridInfo)
@@ -128,6 +189,59 @@ namespace VoxelWater
             {
                 cell.Volume = volume;
                 return;
+            }
+        }
+
+        static public void UpdateCells(List<CellInfo> cellsList, CellInfo[,,] cells, GridInfo gridInfo, List<CellInfo> newCells, List<CellInfo> updatedCells)
+        {
+            int count = cellsList.Count;
+            for (int i = 0; i < count; i++)
+            {
+                List<CellInfo> newCellsTemp = new List<CellInfo>();
+                CellInfo newCell = cellsList[i];
+                //update local cells info
+                newCell = GetCellInfo(newCell, cells, gridInfo);
+
+                //if empty, skip
+                if (newCell.State == CellState.None)
+                    continue;
+                //get info from neighbors
+                newCell = GetNeighboursInfo(newCell, cells, gridInfo);
+                //set state
+                newCell = CellUtility.SetState(newCell);
+
+                //check if states activation is needed
+                if (newCell.OldState == newCell.State &&
+                (newCell.State == CellState.Still || newCell.State == CellState.Empty))
+                {
+                    UpdateInfoGrid(newCell, cells, gridInfo);
+                    cellsList[i] = newCell;
+                    continue;
+                }
+                //activate state
+                newCell = CellUtility.ActivateStateInfo(newCell, newCellsTemp);
+                //check if any updating is needed
+                if (newCell == cellsList[i] && newCellsTemp.Count == 0)
+                {
+                    continue;
+                }
+
+                //put into array to not create duplicates
+                foreach (var cell in newCellsTemp)
+                {
+                    UpdateInfoGrid(cell, cells, gridInfo);
+                }
+
+                //get ONLY new created cells info
+                newCell = GetNewNeighboursInfo(newCell, cells, gridInfo);
+                //update neighbors
+                UpdateNeighboursInfo(newCell, cells, gridInfo);
+                //update info grid locally
+                UpdateInfoGrid(newCell, cells, gridInfo);
+                //add to global list
+                newCells.AddRange(newCellsTemp);
+                updatedCells.Add(newCell);
+                cellsList[i] = newCell;
             }
         }
     }

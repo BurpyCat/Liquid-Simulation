@@ -217,7 +217,7 @@ namespace VoxelWater
         
         private void RenderMesh()
         {
-            if(Cellinfo.State == CellState.Empty || Cellinfo.Volume == 0)
+            if(Cellinfo.State == CellState.Empty || (Cellinfo.State != CellState.Fall && Cellinfo.Volume == 0))
             {
                 Mesh.enabled = false;
             }

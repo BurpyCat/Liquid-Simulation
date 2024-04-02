@@ -62,8 +62,6 @@ namespace VoxelWater
             switch (cellinfo.State)
             {
                 case CellState.Flow:
-                    Debug.Log(cellinfo.X + " " + cellinfo.Y + " " + cellinfo.Z);
-                    Debug.Log("Flow");
                     newCells.AddRange(Flow(ref cellinfo, cellinfo.Volume));
                     break;
                 case CellState.Pressured:
@@ -77,7 +75,6 @@ namespace VoxelWater
                     //write a func for isEmpty cell struct
                     if(newCell.State == CellState.None)
                     {
-                        Debug.Log("Fall");
                         break;
                     }                 
                     else
