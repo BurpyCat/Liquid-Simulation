@@ -35,7 +35,8 @@ namespace VoxelWater
 
         //cellinfo
         private List<CellInfo> CellsInfo_list;
-        public CellInfo[,,] CellsInfo;
+        //public CellInfo[,,] CellsInfo;
+        public CellInfo[] CellsInfo;
         public int GridSizeCI;
         public int OffsetCI;
 
@@ -86,7 +87,7 @@ namespace VoxelWater
             Cells_list = new List<Cell>();
 
             //cellinfo      
-            CellsInfo = new CellInfo[GridSizeCI, GridSizeCI, GridSizeCI];
+            CellsInfo = CellInfoUtility.Create(GridSizeCI);
             CellsInfo_list = new List<CellInfo>();
 
             this.X = X;
@@ -111,54 +112,20 @@ namespace VoxelWater
 
         private void UpdateCellsInfo()
         {
-            Stopwatch timer = new Stopwatch();
-            timer.Start();
             UpdateNeighborCellInfo(CellsInfo);
-            timer.Stop();
-            TimeSpan time1 = timer.Elapsed;
-            UnityEngine.Debug.Log($"UpdateNeighborCellInfo = {time1.TotalMilliseconds}");
-
-            timer.Restart();
-            timer.Start();
             UpdateCellInfo(CellsInfo_list, CellsInfo, GridInfo);
-            timer.Stop();
-            TimeSpan time2 = timer.Elapsed;
-            UnityEngine.Debug.Log($"UpdateCellInfo = {time2.TotalMilliseconds}");
 
             List <CellInfo> newCells = new List<CellInfo>();
             List<CellInfo> updatedCells = new List<CellInfo>();
 
-            timer.Restart();
-            timer.Start();
             GridUtility.UpdateCells(CellsInfo_list, CellsInfo, GridInfo, newCells, updatedCells);
-            timer.Stop();
-            TimeSpan time3 = timer.Elapsed;
-            UnityEngine.Debug.Log($"UpdateCells = {time3.TotalMilliseconds}");
 
             //create all new cells in environment
-            timer.Restart();
-            timer.Start();
             CreateNewCells(newCells);
-            timer.Stop();
-            TimeSpan time4 = timer.Elapsed;
-            UnityEngine.Debug.Log($"CreateNewCells = {time4.TotalMilliseconds}");
             //update all cell objects
-
-            timer.Restart();
-            timer.Start();
             UpdateCellObjects(updatedCells, CellsInfo, GridInfo);
-            timer.Stop();
-            TimeSpan time5 = timer.Elapsed;
-            UnityEngine.Debug.Log($"UpdateCellObjects = {time5.TotalMilliseconds}");
             //update neighboring cells 
-
-            timer.Restart();
-            timer.Start();
             UpdateNeighborCellObjects(CellsInfo);
-            timer.Stop();
-            TimeSpan time6 = timer.Elapsed;
-            UnityEngine.Debug.Log($"UpdateNeighborCellObjects = {time6.TotalMilliseconds}");
-            UnityEngine.Debug.Log("");
         }
 
         private void CreateNewCells(List<CellInfo> newCells)
@@ -169,19 +136,19 @@ namespace VoxelWater
             }   
         }
 
-        private void UpdateCellObjects(List<CellInfo> cellList, CellInfo[,,] cells, GridInfo gridInfo)
+        private void UpdateCellObjects(List<CellInfo> cellList, CellInfo[] cells, GridInfo gridInfo)
         {
             foreach (var cell in cellList)
             {
                 int x = (int)cell.X + gridInfo.Offset - (gridInfo.X * gridInfo.GridSize) + gridInfo.OffsetCI;
                 int y = (int)cell.Y + gridInfo.Offset - (gridInfo.Y * gridInfo.GridSize) + gridInfo.OffsetCI;
                 int z = (int)cell.Z + gridInfo.Offset - (gridInfo.Z * gridInfo.GridSize) + gridInfo.OffsetCI;
-                UpdateCellObject(cells[x, y, z]);
+                UpdateCellObject(CellInfoUtility.Get(x, y, z, GridSizeCI, cells));
             }
         }
 
         //can be more efficient
-        private void UpdateNeighborCellObjects(CellInfo[,,] cells)
+        private void UpdateNeighborCellObjects(CellInfo[] cells)
         {
             for (int i = 1; i < GridSizeCI - 1; i++)
                 for (int j = 1; j < GridSizeCI - 1; j++)
@@ -202,13 +169,13 @@ namespace VoxelWater
                 }
         }
 
-        private void UpdateCellObject(int x, int y, int z, CellInfo[,,] cells)
+        private void UpdateCellObject(int x, int y, int z, CellInfo[] cells)
         {
             Cell cellObj = Manager.GetCell(x - OffsetCI, y - OffsetCI, z - OffsetCI, X, Y, Z);
 
             if (cellObj != null)
             {
-                cellObj.Cellinfo = cells[x, y, z];
+                cellObj.Cellinfo = CellInfoUtility.Get(x, y, z,GridSizeCI, cells);
             }
         }
 
@@ -225,7 +192,7 @@ namespace VoxelWater
             cellObj.RenderCell();
         }
 
-        private void UpdateNeighborCellInfo(CellInfo[,,] cells)
+        private void UpdateNeighborCellInfo(CellInfo[] cells)
         {
             for (int i = 1; i < GridSizeCI - 1; i++)
                 for (int j = 1; j < GridSizeCI - 1; j++)
@@ -246,7 +213,7 @@ namespace VoxelWater
                 }
         }
 
-        private void UpdateCellInfo(List<CellInfo> cellList, CellInfo[,,] cells, GridInfo gridInfo)
+        private void UpdateCellInfo(List<CellInfo> cellList, CellInfo[] cells, GridInfo gridInfo)
         {
             foreach (var cell in cellList)
             {
@@ -257,13 +224,13 @@ namespace VoxelWater
             }
         }
 
-        private void UpdateCellInfo(int x, int y, int z, CellInfo[,,] cells)
+        private void UpdateCellInfo(int x, int y, int z, CellInfo[] cells)
         {
             Cell cellObj = Manager.GetCell(x - OffsetCI, y - OffsetCI, z - OffsetCI, X, Y, Z);
 
             if (cellObj != null)
             {
-                cells[x, y, z] = cellObj.Cellinfo;
+                CellInfoUtility.Put(cellObj.Cellinfo, x, y, z, GridSizeCI, cells);
             }
         }
         /*--------------------------------------------------------------------------------*/
@@ -337,9 +304,9 @@ namespace VoxelWater
             int x = (int)cell.Cellinfo.X + Offset - (X * GridSize);
             int y = (int)cell.Cellinfo.Y + Offset - (Y * GridSize);
             int z = (int)cell.Cellinfo.Z + Offset - (Z * GridSize);
-            
+
             //cellInfo
-            CellsInfo[x + OffsetCI, y + OffsetCI, z + OffsetCI] = cell.Cellinfo;
+            CellInfoUtility.Put(cell.Cellinfo, x + OffsetCI, y + OffsetCI, z + OffsetCI, GridSizeCI, CellsInfo);
         }
 
         public void PutIntoInfoList(Cell cell)

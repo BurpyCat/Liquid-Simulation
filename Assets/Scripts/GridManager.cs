@@ -145,7 +145,7 @@ namespace VoxelWater
                 return;
             else
             {
-                grid.CellsInfo[x + 1, y + 1, z + 1] = cell.Cellinfo;
+                CellInfoUtility.Put(cell.Cellinfo, x + 1, y + 1, z + 1, grid.GridSizeCI, grid.CellsInfo);
             }
         }
 
