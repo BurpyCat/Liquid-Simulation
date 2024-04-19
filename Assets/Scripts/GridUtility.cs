@@ -77,9 +77,8 @@ namespace VoxelWater
     */
     static public class GridUtility
     {
-        static public void UpdateCells(List<CellInfo> cellsList, CellInfo[] cells, GridInfo gridInfo, List<CellInfo> newCells, List<CellInfo> updatedCells)
+        static public void UpdateCells(CellInfo[] cellsList, int count, CellInfo[] cells, GridInfo gridInfo, CellInfo[] newCells, ref int newCount, CellInfo[] updatedCells, ref int updatedCount)
         {
-            int count = cellsList.Count;
             for (int i = 0; i < count; i++)
             {
                 List<CellInfo> newCellsTemp = new List<CellInfo>();
@@ -124,8 +123,15 @@ namespace VoxelWater
                 //update info grid locally
                 UpdateInfoGrid(newCell, cells, gridInfo);
                 //add to global list
-                newCells.AddRange(newCellsTemp);
-                updatedCells.Add(newCell);
+                foreach(var cell in newCellsTemp)
+                {
+                    newCells[newCount] = cell;
+                    newCount++;
+                }
+                //newCells.AddRange(newCellsTemp);
+                updatedCells[updatedCount]=newCell;
+                updatedCount++;
+
                 cellsList[i] = newCell;
             }
         }

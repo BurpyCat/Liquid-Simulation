@@ -34,8 +34,11 @@ namespace VoxelWater
         public Cell[,,] Cells;
 
         //cellinfo
-        private List<CellInfo> CellsInfo_list;
+        //includes only current live cells
+        private int CellsInfoCount = 0;
+        private CellInfo[] CellsInfo_list;
         //public CellInfo[,,] CellsInfo;
+        //includes current cells AND neighbours
         public CellInfo[] CellsInfo;
         public int GridSizeCI;
         public int OffsetCI;
@@ -88,7 +91,8 @@ namespace VoxelWater
 
             //cellinfo      
             CellsInfo = CellInfoUtility.Create(GridSizeCI);
-            CellsInfo_list = new List<CellInfo>();
+            CellsInfo_list = new CellInfo[GridSize* GridSize* GridSize];
+            CellsInfoCount = 0;
 
             this.X = X;
             this.Y = Y;
@@ -113,33 +117,38 @@ namespace VoxelWater
         private void UpdateCellsInfo()
         {
             UpdateNeighborCellInfo(CellsInfo);
-            UpdateCellInfo(CellsInfo_list, CellsInfo, GridInfo);
+            UpdateCellInfo(CellsInfo_list, CellsInfoCount, CellsInfo, GridInfo);
 
-            List <CellInfo> newCells = new List<CellInfo>();
-            List<CellInfo> updatedCells = new List<CellInfo>();
+            CellInfo[] newCells = new CellInfo[GridSize* GridSize* GridSize];
+            int newCellsCount = 0;
+            CellInfo[] updatedCells = new CellInfo[GridSize * GridSize * GridSize];
+            int updatedCellsCount = 0;
 
-            GridUtility.UpdateCells(CellsInfo_list, CellsInfo, GridInfo, newCells, updatedCells);
+            GridUtility.UpdateCells(CellsInfo_list, CellsInfoCount, CellsInfo, GridInfo, 
+                newCells, ref newCellsCount, updatedCells, ref updatedCellsCount);
 
             //create all new cells in environment
-            CreateNewCells(newCells);
+            CreateNewCells(newCells, newCellsCount);
             //update all cell objects
-            UpdateCellObjects(updatedCells, CellsInfo, GridInfo);
+            UpdateCellObjects(updatedCells, updatedCellsCount, CellsInfo, GridInfo);
             //update neighboring cells 
             UpdateNeighborCellObjects(CellsInfo);
         }
 
-        private void CreateNewCells(List<CellInfo> newCells)
+        private void CreateNewCells(CellInfo[] newCells, int count)
         {
-            foreach(var cell in newCells)
+            for(int i=0; i<count; i++)
             {
+                var cell = newCells[i];
                 CreateCell(cell.X, cell.Y, cell.Z, cell.Volume);
             }   
         }
 
-        private void UpdateCellObjects(List<CellInfo> cellList, CellInfo[] cells, GridInfo gridInfo)
+        private void UpdateCellObjects(CellInfo[] cellList, int count, CellInfo[] cells, GridInfo gridInfo)
         {
-            foreach (var cell in cellList)
+            for (int i = 0; i < count; i++)
             {
+                var cell = cellList[i];
                 int x = (int)cell.X + gridInfo.Offset - (gridInfo.X * gridInfo.GridSize) + gridInfo.OffsetCI;
                 int y = (int)cell.Y + gridInfo.Offset - (gridInfo.Y * gridInfo.GridSize) + gridInfo.OffsetCI;
                 int z = (int)cell.Z + gridInfo.Offset - (gridInfo.Z * gridInfo.GridSize) + gridInfo.OffsetCI;
@@ -213,10 +222,11 @@ namespace VoxelWater
                 }
         }
 
-        private void UpdateCellInfo(List<CellInfo> cellList, CellInfo[] cells, GridInfo gridInfo)
+        private void UpdateCellInfo(CellInfo[] cellList, int count, CellInfo[] cells, GridInfo gridInfo)
         {
-            foreach (var cell in cellList)
+            for(int i =0; i<count; i++)
             {
+                var cell = cellList[i];
                 int x = (int)cell.X + gridInfo.Offset - (gridInfo.X * gridInfo.GridSize) + gridInfo.OffsetCI;
                 int y = (int)cell.Y + gridInfo.Offset - (gridInfo.Y * gridInfo.GridSize) + gridInfo.OffsetCI;
                 int z = (int)cell.Z + gridInfo.Offset - (gridInfo.Z * gridInfo.GridSize) + gridInfo.OffsetCI;
@@ -311,7 +321,8 @@ namespace VoxelWater
 
         public void PutIntoInfoList(Cell cell)
         {
-            CellsInfo_list.Add(cell.Cellinfo);
+            CellsInfo_list[CellsInfoCount] = cell.Cellinfo;
+            CellsInfoCount++;
         }
 
         private void GetNeighboursInfo(Cell cell)
