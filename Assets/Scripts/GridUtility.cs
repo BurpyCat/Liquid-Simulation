@@ -3,78 +3,56 @@ using System.Collections.Generic;
 using System.Dynamic;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.VisualScripting;
 using UnityEditor.PackageManager;
 using UnityEngine;
 using VoxelWater;
 
 namespace VoxelWater
 {
-    /*
-    public struct UpdateCellsParallel : IJobFor
+    public struct UpdateGridsParallel : IJobFor
     {
-        //public NativeArray<CellInfo> Value;
-        //TO-DO flatten multi dimensional array...
-        //i = x + width* y + width* height*z;
-       // x = i % width;
-       // y = (i / width)%height;
-       // z = i / (width* height);
-        public List<CellInfo> cellsList;
-        public CellInfo[,,] cells;
-        public GridInfo gridInfo;
-        //these are size^3
-        public List<CellInfo> newCells;
-        //these might be size+1^3 but perhaps size^3 will be good
-        public List<CellInfo> updatedCells;
+        public int gridSizeFull;
+        public int gridSizeFullCI;
+        [NativeDisableParallelForRestriction] public NativeArray<CellInfo> newCellsArr;
+        [NativeDisableParallelForRestriction] public NativeArray<int> newCellsCountArr;
+        [NativeDisableParallelForRestriction] public NativeArray<CellInfo> updatedCellsArr;
+        [NativeDisableParallelForRestriction] public NativeArray<int> updatedCellsCountArr;
+
+        [NativeDisableParallelForRestriction] public NativeArray<CellInfo> cellsInfo_listArr;
+        [NativeDisableParallelForRestriction] public NativeArray<int> cellsInfoCountArr;
+        [NativeDisableParallelForRestriction] public NativeArray<CellInfo> cellsInfoArr;
+        [NativeDisableParallelForRestriction] public NativeArray<GridInfo> gridInfoArr;
         public void Execute(int i)
         {
-            List<CellInfo> newCellsTemp = new List<CellInfo>();
-            CellInfo newCell = cellsList[i];
-            //update local cells info
-            newCell = GridUtility.GetCellInfo(newCell, cells, gridInfo);
+            //copy from bigger arrays
+            GridInfo gridInfo = gridInfoArr[i];
+            int fullGridSize = gridInfo.GridSize * gridInfo.GridSize * gridInfo.GridSize;
+            int fullGridSizeCI = gridInfo.GridSizeCI * gridInfo.GridSizeCI * gridInfo.GridSizeCI;
 
-            //if empty, skip
-            if (newCell.State == CellState.None)
-                return;
-            //get info from neighbors
-            newCell = GridUtility.GetNeighboursInfo(newCell, cells, gridInfo);
-            //set state
-            newCell = CellUtility.SetState(newCell);
+            int cellsInfoCount = cellsInfoCountArr[i];
+            CellInfo[] cellsInfo_list = CellInfoUtility.ExtractCellInfoArray(i, cellsInfo_listArr, fullGridSize, cellsInfoCount);
+            CellInfo[] cellsInfo = CellInfoUtility.ExtractCellInfoArray(i, cellsInfoArr, fullGridSizeCI, fullGridSizeCI);
 
-            //check if states activation is needed
-            if (newCell.OldState == newCell.State &&
-            (newCell.State == CellState.Still || newCell.State == CellState.Empty))
-            {
-                GridUtility.UpdateInfoGrid(newCell, cells, gridInfo);
-                cellsList[i] = newCell;
-                return;
-            }
-            //activate state
-            newCell = CellUtility.ActivateStateInfo(newCell, newCellsTemp);
-            //check if any updating is needed
-            if (newCell == cellsList[i] && newCellsTemp.Count == 0)
-            {
-                return;
-            }
+            CellInfo[] newCells = new CellInfo[fullGridSize];
+            int newCellsCount = 0;
+            CellInfo[] updatedCells = new CellInfo[fullGridSize];
+            int updatedCellsCount = 0;
 
-            //put into array to not create duplicates
-            foreach (var cell in newCellsTemp)
-            {
-                GridUtility.UpdateInfoGrid(cell, cells, gridInfo);
-            }
+            GridUtility.UpdateCells(cellsInfo_list, cellsInfoCount, cellsInfo, gridInfo,
+                newCells, ref newCellsCount, updatedCells, ref updatedCellsCount);
 
-            //get ONLY new created cells info
-            newCell = GridUtility.GetNewNeighboursInfo(newCell, cells, gridInfo);
-            //update neighbors
-            GridUtility.UpdateNeighboursInfo(newCell, cells, gridInfo);
-            //update info grid locally
-            GridUtility.UpdateInfoGrid(newCell, cells, gridInfo);
-            //add to global list
-            newCells.AddRange(newCellsTemp);
-            updatedCells.Add(newCell);
-            cellsList[i] = newCell;
+            //copy to bigger arrays
+            CellInfoUtility.InjectCellInfoArray(i, ref newCellsArr, fullGridSize, newCells, newCellsCount);
+            newCellsCountArr[i] = newCellsCount;
+            CellInfoUtility.InjectCellInfoArray(i, ref updatedCellsArr, fullGridSize, updatedCells, updatedCellsCount);
+            updatedCellsCountArr[i] = updatedCellsCount;
+
+            CellInfoUtility.InjectCellInfoArray(i, ref cellsInfo_listArr, fullGridSize, cellsInfo_list, cellsInfoCount);
+            CellInfoUtility.InjectCellInfoArray(i, ref cellsInfoArr, fullGridSizeCI, cellsInfo, fullGridSizeCI);
         }
     }
-    */
+    
     static public class GridUtility
     {
         static public void UpdateCells(CellInfo[] cellsList, int count, CellInfo[] cells, GridInfo gridInfo, CellInfo[] newCells, ref int newCount, CellInfo[] updatedCells, ref int updatedCount)
@@ -126,11 +104,11 @@ namespace VoxelWater
                 foreach(var cell in newCellsTemp)
                 {
                     newCells[newCount] = cell;
-                    newCount++;
+                    newCount= 1+newCount;
                 }
                 //newCells.AddRange(newCellsTemp);
                 updatedCells[updatedCount]=newCell;
-                updatedCount++;
+                updatedCount=1+ updatedCount;
 
                 cellsList[i] = newCell;
             }

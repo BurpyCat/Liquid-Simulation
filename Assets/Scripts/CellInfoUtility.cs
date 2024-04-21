@@ -1,11 +1,31 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using Unity.Collections;
 using UnityEngine;
 using VoxelWater;
 
 public static class CellInfoUtility
 {
+    //2d flattened array to 1d, native to normal
+    static public CellInfo[] ExtractCellInfoArray(int ind, NativeArray<CellInfo> array, int lengthArray, int count)
+    {
+        int index = ind * lengthArray;
+        CellInfo[] newArr = new CellInfo[count];
+        for (int i = 0; i < count; i++)
+        {
+            newArr[i] = array[index + i];
+        }
+        return newArr;
+    }
+    static public void InjectCellInfoArray(int ind, ref NativeArray<CellInfo> orgArray, int orgLengthArray, CellInfo[] array, int lengthArray)
+    {
+        int index = ind * orgLengthArray;
+        for (int i = 0; i < lengthArray; i++)
+        {
+            orgArray[index + i] = array[i];
+        }
+    }
     //2d flattened array to 1d
     static public CellInfo[] ExtractCellInfoArray(int ind, CellInfo[] array, int lengthArray, int count)
     {

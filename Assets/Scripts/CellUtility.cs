@@ -285,12 +285,12 @@ namespace VoxelWater
             Vector3 currentPosition = new Vector3(cellinfo.X, cellinfo.Y, cellinfo.Z);
             Vector3 checkDirection = new Vector3(x, y, z);
 
-            RaycastHit[] colliders = Physics.SphereCastAll(currentPosition, 0.25f, checkDirection, 1.20f);
+            //RaycastHit[] colliders = Physics.SphereCastAll(currentPosition, 0.25f, checkDirection, 1.20f);
 
-            if (colliders.Length > 0)
-            {
-                return true;
-            }
+            //if (colliders.Length > 0)
+            //{
+            //    return true;
+            //}
 
             return false;
         }

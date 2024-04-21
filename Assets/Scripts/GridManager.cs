@@ -1,4 +1,7 @@
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Jobs;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -47,7 +50,8 @@ namespace VoxelWater
         {
             for (int i = 0; i < 7; i++)
             {
-                UpdateGridCategory(i);
+                if(GridsCount[i]!=0)
+                    UpdateGridCategory(i);
             }
         }
 
@@ -62,6 +66,7 @@ namespace VoxelWater
             }
 
             //parallel update
+            /*
             int gridSizeFull = GridSize * GridSize * GridSize;
             int gridSizeFullCI = (GridSize+2) * (GridSize + 2) * (GridSize + 2);
             CellInfo[] newCellsArr = new CellInfo[gridSizeFull * count];
@@ -96,15 +101,79 @@ namespace VoxelWater
                 Grid.UpdateGridCellState(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
                                         ref cellsInfo_listArr, cellsInfoCountArr, ref cellsInfoArr, gridInfoArr);
             }
+            */
+            int gridSizeFull = GridSize * GridSize * GridSize;
+            int gridSizeFullCI = (GridSize + 2) * (GridSize + 2) * (GridSize + 2);
+            NativeArray<CellInfo> newCellsArr = new NativeArray<CellInfo>(gridSizeFull * count, Allocator.TempJob);
+            NativeArray<int> newCellsCountArr = new NativeArray<int>(count, Allocator.TempJob);
+            NativeArray<CellInfo> updatedCellsArr = new NativeArray<CellInfo>(gridSizeFull * count, Allocator.TempJob);
+            NativeArray<int> updatedCellsCountArr = new NativeArray<int>(count, Allocator.TempJob);
 
+            NativeArray<CellInfo> cellsInfo_listArr = new NativeArray<CellInfo>(gridSizeFull * count, Allocator.TempJob);
+            NativeArray<int> cellsInfoCountArr = new NativeArray<int>(count, Allocator.TempJob);
+            NativeArray<CellInfo> cellsInfoArr = new NativeArray<CellInfo>(gridSizeFullCI * count, Allocator.TempJob);
+            NativeArray<GridInfo> gridInfoArr = new NativeArray<GridInfo>(count, Allocator.TempJob);
+            //copy all
+            for (int j = 0; j < count; j++)
+            {
+                Grid grid = GridsParallel[ind, j];
+                int index1 = j * gridSizeFull;
+                cellsInfoCountArr[j] = grid.CellsInfoCount;
+                for (int k = 0; k < cellsInfoCountArr[j]; k++)
+                {
+                    cellsInfo_listArr[k + index1] = grid.CellsInfo_list[k];
+                }
+                int index2 = j * gridSizeFullCI;
+                for (int k = 0; k < gridSizeFullCI; k++)
+                {
+                    cellsInfoArr[k + index2] = grid.CellsInfo[k];
+                }
+                gridInfoArr[j] = grid.GridInfo;
+            }
+            //mashalah
+            
+            UpdateGridsParallel update = new UpdateGridsParallel
+            {
+                newCellsArr = newCellsArr,
+                newCellsCountArr = newCellsCountArr,
+                updatedCellsArr = updatedCellsArr,
+                updatedCellsCountArr = updatedCellsCountArr,
 
+                cellsInfo_listArr = cellsInfo_listArr,
+                cellsInfoCountArr = cellsInfoCountArr,
+                cellsInfoArr = cellsInfoArr,
+                gridInfoArr = gridInfoArr,
+            };
+
+            JobHandle dependency = new JobHandle();
+            JobHandle scheduledependency = update.Schedule(0, dependency);
+            JobHandle scheduleparalleljob = update.ScheduleParallel(count, 1, scheduledependency);
+
+            scheduleparalleljob.Complete();
+            
+            /*
+            for (int j = 0; j < count; j++)
+            {
+                Grid.UpdateGridCellState2(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
+                                        ref cellsInfo_listArr, cellsInfoCountArr, ref cellsInfoArr, gridInfoArr);
+            }
+            */
             //last update
             for (int j = 0; j < count; j++)
             {
                 GridsParallel[ind, j].CreateAndUpdateGridCells(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
                                         ref cellsInfo_listArr, ref cellsInfoArr);
             }
-            
+
+            newCellsArr.Dispose();
+            newCellsCountArr.Dispose();
+            updatedCellsArr.Dispose();
+            updatedCellsCountArr.Dispose();
+
+            cellsInfo_listArr.Dispose();
+            cellsInfoCountArr.Dispose();
+            cellsInfoArr.Dispose();
+            gridInfoArr.Dispose();
         }
 
         public Grid GetGrid(int x, int y, int z, int Xorg, int Yorg, int Zorg)
