@@ -6,6 +6,27 @@ using VoxelWater;
 
 public static class CellInfoUtility
 {
+    //2d flattened array to 1d
+    static public CellInfo[] ExtractCellInfoArray(int ind, CellInfo[] array, int lengthArray, int count)
+    {
+        int index = ind * lengthArray;
+        CellInfo[] newArr = new CellInfo[count];
+        for (int i = 0; i < count; i++)
+        {
+            newArr[i] = array[index+i];
+        }
+        return newArr;
+    }
+    static public CellInfo[] InjectCellInfoArray(int ind, CellInfo[] orgArray, int orgLengthArray, CellInfo[] array, int lengthArray)
+    {
+        int index = ind * orgLengthArray;
+        for (int i = 0; i < lengthArray; i++)
+        {
+            orgArray[index+i] = array[i];
+        }
+        return orgArray;
+    }
+    //3d flattened array to 1d
     public static CellInfo Get( int x, int y, int z, int size, CellInfo[] grid)
     {
         if (x >= size || y >= size || z >= size ||

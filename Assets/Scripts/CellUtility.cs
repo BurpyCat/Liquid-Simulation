@@ -8,6 +8,7 @@ namespace VoxelWater
     static public class CellUtility
     {
         static public CellInfo EmptyCell = new CellInfo() { State = CellState.None };
+
         static public CellInfo SetState(CellInfo cellinfo)
         {
             if (cellinfo.State == CellState.Create || cellinfo.State == CellState.Remove)

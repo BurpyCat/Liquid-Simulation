@@ -6,6 +6,7 @@ using UnityEngine.UIElements;
 using UnityEditor.PackageManager;
 using Unity.Jobs;
 using System.Diagnostics;
+using Unity.VisualScripting;
 
 namespace VoxelWater
 {
@@ -16,6 +17,8 @@ namespace VoxelWater
         public int X;
         public int Y;
         public int Z;
+
+        public int Num;
 
         //(GridSize - 1) /2
         public int Offset;
@@ -35,8 +38,8 @@ namespace VoxelWater
 
         //cellinfo
         //includes only current live cells
-        private int CellsInfoCount = 0;
-        private CellInfo[] CellsInfo_list;
+        public int CellsInfoCount = 0;
+        public CellInfo[] CellsInfo_list;
         //public CellInfo[,,] CellsInfo;
         //includes current cells AND neighbours
         public CellInfo[] CellsInfo;
@@ -107,25 +110,92 @@ namespace VoxelWater
             GridInfo.GridOffset = GridOffset;
             GridInfo.GridSizeCI = GridSizeCI;
             GridInfo.OffsetCI = OffsetCI;
+            GridInfo.Num = CalcGridNumber();
+        }
+
+        private int CalcGridNumber()
+        {
+            int x = (X + GridOffset) % 7;
+            int y = (Y + GridOffset) % 7;
+            int z = (Z + GridOffset) % 7;
+
+            return (x + y * 3 + z * 3 * 3) % 7;
         }
 
         void Update()
         {
-            UpdateCellsInfo();
+            //UpdateCellsInfo();
         }
 
-        private void UpdateCellsInfo()
+        public void UpdateCellsInfo()
+        {
+            //UpdateGridCellsInfo();
+
+            //UpdateGridCellState();
+
+            //CreateAndUpdateGridCells();
+
+        }
+
+        public void UpdateGridCellsInfo()
         {
             UpdateNeighborCellInfo(CellsInfo);
             UpdateCellInfo(CellsInfo_list, CellsInfoCount, CellsInfo, GridInfo);
+        }
 
-            CellInfo[] newCells = new CellInfo[GridSize* GridSize* GridSize];
+        public static void UpdateGridCellState(int ind, ref CellInfo[] newCellsArr, ref int[] newCellsCountArr, ref CellInfo[] updatedCellsArr, ref int[] updatedCellsCountArr,
+                                        ref CellInfo[] cellsInfo_listArr, int[] cellsInfoCountArr, ref CellInfo[] cellsInfoArr, GridInfo[] gridInfoArr)
+        {
+            //copy from bigger arrays
+            GridInfo gridInfo = gridInfoArr[ind];
+            int fullGridSize = gridInfo.GridSize * gridInfo.GridSize * gridInfo.GridSize;
+            int fullGridSizeCI = gridInfo.GridSizeCI * gridInfo.GridSizeCI * gridInfo.GridSizeCI;
+
+            int cellsInfoCount = cellsInfoCountArr[ind];
+            CellInfo[] cellsInfo_list = CellInfoUtility.ExtractCellInfoArray(ind, cellsInfo_listArr, fullGridSize, cellsInfoCount);
+            CellInfo[] cellsInfo = CellInfoUtility.ExtractCellInfoArray(ind, cellsInfoArr, fullGridSizeCI, fullGridSizeCI);
+
+            CellInfo[] newCells = new CellInfo[fullGridSize];
             int newCellsCount = 0;
-            CellInfo[] updatedCells = new CellInfo[GridSize * GridSize * GridSize];
+            CellInfo[] updatedCells = new CellInfo[fullGridSize];
             int updatedCellsCount = 0;
 
-            GridUtility.UpdateCells(CellsInfo_list, CellsInfoCount, CellsInfo, GridInfo, 
+            //update cell state
+            GridUtility.UpdateCells(cellsInfo_list, cellsInfoCount, cellsInfo, gridInfo,
                 newCells, ref newCellsCount, updatedCells, ref updatedCellsCount);
+
+            //copy to bigger arrays
+            newCellsArr = CellInfoUtility.InjectCellInfoArray(ind, newCellsArr, fullGridSize, newCells, newCellsCount);
+            newCellsCountArr[ind] = newCellsCount;
+            updatedCellsArr = CellInfoUtility.InjectCellInfoArray(ind, updatedCellsArr, fullGridSize, updatedCells, updatedCellsCount);
+            updatedCellsCountArr[ind] = updatedCellsCount;
+
+            cellsInfo_listArr = CellInfoUtility.InjectCellInfoArray(ind, cellsInfo_listArr, fullGridSize, cellsInfo_list, cellsInfoCount);
+            cellsInfoArr = CellInfoUtility.InjectCellInfoArray(ind, cellsInfoArr, fullGridSizeCI, cellsInfo, fullGridSizeCI);
+
+            //ill kill myself jeigu kazaks cia blogai
+            //i'll need to copy back cellsInfo_list, CellsInfo, newCells, ref newCellsCount, updatedCells, ref updatedCellsCount
+        }
+
+
+
+        public void CreateAndUpdateGridCells(int ind, ref CellInfo[] newCellsArr, ref int[] newCellsCountArr, ref CellInfo[] updatedCellsArr, ref int[] updatedCellsCountArr,
+                                        ref CellInfo[] cellsInfo_listArr, ref CellInfo[] cellsInfoArr)
+        {
+            int fullGridSize = GridInfo.GridSize * GridInfo.GridSize * GridInfo.GridSize;
+            int fullGridSizeCI = GridInfo.GridSizeCI * GridInfo.GridSizeCI * GridInfo.GridSizeCI;
+            //copy cellsinfo list and the other
+            CellsInfo_list = CellInfoUtility.ExtractCellInfoArray(ind, cellsInfo_listArr, fullGridSize, fullGridSize);
+            CellsInfo = CellInfoUtility.ExtractCellInfoArray(ind, cellsInfoArr, fullGridSizeCI, fullGridSizeCI);
+
+            //extract new and updated cells
+
+            int newCellsCount = newCellsCountArr[ind];
+            CellInfo[] newCells = CellInfoUtility.ExtractCellInfoArray(ind, newCellsArr, fullGridSize, newCellsCount);
+
+            int updatedCellsCount = updatedCellsCountArr[ind];
+            CellInfo[] updatedCells = CellInfoUtility.ExtractCellInfoArray(ind, updatedCellsArr, fullGridSize, updatedCellsCount);
+
 
             //create all new cells in environment
             CreateNewCells(newCells, newCellsCount);

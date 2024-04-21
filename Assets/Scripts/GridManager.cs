@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace VoxelWater
@@ -5,6 +7,9 @@ namespace VoxelWater
     public class GridManager : MonoBehaviour
     {
         Grid[,,] Grids;
+        public List<Grid> GridsList;
+        public Grid[,] GridsParallel;
+        public int[] GridsCount;
         public GameObject GridPrefab;
         //(GridSize -1 )/2
         //nelyginis
@@ -17,7 +22,89 @@ namespace VoxelWater
         void Awake()
         {
             Grids = new Grid[GridManagerSize, GridManagerSize, GridManagerSize];
+            GridsParallel = new Grid[7, (int)((GridManagerSize * GridManagerSize * GridManagerSize) / 7)];
+            GridsCount = new int[7];
+            GridsList = new List<Grid>();
             GridOffset = (GridManagerSize - 1) / 2;
+        }
+
+        private void Update()
+        {
+            UpdateGridsParallel();
+        }
+
+        private void UpdateGrids()
+        {
+            int count = GridsList.Count;
+            for(int i=0; i<count; i++)
+            {
+                Grid grid = GridsList[i];
+                grid.UpdateCellsInfo();
+            }
+        }
+
+        private void UpdateGridsParallel()
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                UpdateGridCategory(i);
+            }
+        }
+
+        private void UpdateGridCategory(int ind)
+        {
+            int count = GridsCount[ind];
+
+            //first update
+            for (int j = 0; j < count; j++)
+            {
+                GridsParallel[ind, j].UpdateGridCellsInfo();
+            }
+
+            //parallel update
+            int gridSizeFull = GridSize * GridSize * GridSize;
+            int gridSizeFullCI = (GridSize+2) * (GridSize + 2) * (GridSize + 2);
+            CellInfo[] newCellsArr = new CellInfo[gridSizeFull * count];
+            int[] newCellsCountArr = new int[count];
+            CellInfo[] updatedCellsArr = new CellInfo[gridSizeFull * count];
+            int[] updatedCellsCountArr = new int[count];
+
+            CellInfo[] cellsInfo_listArr = new CellInfo[gridSizeFull * count];
+            int[] cellsInfoCountArr = new int[count];
+            CellInfo[] cellsInfoArr = new CellInfo[gridSizeFullCI * count];
+            GridInfo[] gridInfoArr = new GridInfo[count];
+            //copy all
+            for (int j = 0; j < count; j++)
+            {
+                Grid grid = GridsParallel[ind, j];
+                int index1 = j*gridSizeFull;
+                cellsInfoCountArr[j] = grid.CellsInfoCount;
+                for(int k=0; k< cellsInfoCountArr[j]; k++)
+                {
+                    cellsInfo_listArr[k + index1] = grid.CellsInfo_list[k];
+                }
+                int index2 = j * gridSizeFullCI;
+                for (int k = 0; k < gridSizeFullCI; k++)
+                {
+                    cellsInfoArr[k + index2] = grid.CellsInfo[k];
+                }
+                gridInfoArr[j] = grid.GridInfo;
+            }
+            //mashalah
+            for (int j = 0; j < count; j++)
+            {
+                Grid.UpdateGridCellState(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
+                                        ref cellsInfo_listArr, cellsInfoCountArr, ref cellsInfoArr, gridInfoArr);
+            }
+
+
+            //last update
+            for (int j = 0; j < count; j++)
+            {
+                GridsParallel[ind, j].CreateAndUpdateGridCells(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
+                                        ref cellsInfo_listArr, ref cellsInfoArr);
+            }
+            
         }
 
         public Grid GetGrid(int x, int y, int z, int Xorg, int Yorg, int Zorg)
@@ -164,6 +251,11 @@ namespace VoxelWater
         {
             //expansion?
             Grids[X+GridOffset, Y + GridOffset, Z + GridOffset] = grid;
+            //list
+            GridsList.Add(grid);
+            int num = grid.GridInfo.Num;
+            GridsParallel[num, GridsCount[num]] = grid;
+            GridsCount[num]++;
         }
     }
 }
