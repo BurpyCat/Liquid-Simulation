@@ -27,6 +27,9 @@ namespace VoxelWater
         {
             //copy from bigger arrays
             GridInfo gridInfo = gridInfoArr[i];
+            if (!gridInfo.Active)
+                return;
+
             int fullGridSize = gridInfo.GridSize * gridInfo.GridSize * gridInfo.GridSize;
             int fullGridSizeCI = gridInfo.GridSizeCI * gridInfo.GridSizeCI * gridInfo.GridSizeCI;
 

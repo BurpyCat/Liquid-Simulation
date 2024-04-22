@@ -58,11 +58,15 @@ namespace VoxelWater
         private void UpdateGridCategory(int ind)
         {
             int count = GridsCount[ind];
-
+            int countActive = 0;
             //first update
             for (int j = 0; j < count; j++)
             {
-                GridsParallel[ind, j].UpdateGridCellsInfo();
+                if(GridsParallel[ind, j].GridInfo.Active)
+                {
+                    GridsParallel[ind, j].UpdateGridCellsInfo();
+                    countActive++;
+                } 
             }
 
             //parallel update
@@ -102,6 +106,10 @@ namespace VoxelWater
                                         ref cellsInfo_listArr, cellsInfoCountArr, ref cellsInfoArr, gridInfoArr);
             }
             */
+            
+            if (countActive == 0)
+                return;
+
             int gridSizeFull = GridSize * GridSize * GridSize;
             int gridSizeFullCI = (GridSize + 2) * (GridSize + 2) * (GridSize + 2);
             NativeArray<CellInfo> newCellsArr = new NativeArray<CellInfo>(gridSizeFull * count, Allocator.TempJob);
@@ -117,6 +125,9 @@ namespace VoxelWater
             for (int j = 0; j < count; j++)
             {
                 Grid grid = GridsParallel[ind, j];
+                if (!GridsParallel[ind, j].GridInfo.Active)
+                    continue;
+                
                 int index1 = j * gridSizeFull;
                 cellsInfoCountArr[j] = grid.CellsInfoCount;
                 for (int k = 0; k < cellsInfoCountArr[j]; k++)
@@ -161,6 +172,8 @@ namespace VoxelWater
             //last update
             for (int j = 0; j < count; j++)
             {
+                if (!GridsParallel[ind, j].GridInfo.Active)
+                    continue;
                 GridsParallel[ind, j].CreateAndUpdateGridCells(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
                                         ref cellsInfo_listArr, ref cellsInfoArr);
             }

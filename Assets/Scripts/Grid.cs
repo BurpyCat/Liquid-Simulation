@@ -30,6 +30,8 @@ namespace VoxelWater
 
         public int GridSizeCI;
         public int OffsetCI;
+
+        public bool Active;
     }
 
     public class Grid : MonoBehaviour
@@ -112,6 +114,7 @@ namespace VoxelWater
             GridInfo.GridSizeCI = GridSizeCI;
             GridInfo.OffsetCI = OffsetCI;
             GridInfo.Num = CalcGridNumber();
+            GridInfo.Active = true;
         }
 
         private int CalcGridNumber()
@@ -259,6 +262,9 @@ namespace VoxelWater
             UpdateCellObjects(updatedCells, updatedCellsCount, CellsInfo, GridInfo);
             //update neighboring cells 
             UpdateNeighborCellObjects(CellsInfo);
+            //active check
+            if (newCellsCount == 0 && updatedCellsCount == 0)
+                GridInfo.Active = false;
         }
 
         private void CreateNewCells(CellInfo[] newCells, int count)
@@ -311,6 +317,8 @@ namespace VoxelWater
             if (cellObj != null)
             {
                 cellObj.Cellinfo = CellInfoUtility.Get(x, y, z,GridSizeCI, cells);
+                //set to active
+                cellObj.Grid.GridInfo.Active = true;
             }
         }
 
