@@ -1,7 +1,4 @@
 using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using UnityEngine;
 
 namespace VoxelWater
 {
@@ -19,10 +16,11 @@ namespace VoxelWater
             int[] sides = getSideColliders(cellinfo, colliders);
             int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
 
-            bool down = ((cellinfo.BottomState == CellState.None || cellinfo.BottomState == CellState.Empty) && !ColliderExists(cellinfo, colliders, 0, -1, 0));
+            bool down = ((cellinfo.BottomState == CellState.None || cellinfo.BottomState == CellState.Empty) && 
+                        !ColliderExists(cellinfo, colliders, 0, -1, 0));
 
             //Cell emptyNeighbour = GetEmptyNeighbour(ref cellinfo, front, right, back, left, bottom);
-            bool surroundedByEmpty = SurroundedByEmpty(cellinfo);
+            //bool surroundedByEmpty = SurroundedByEmpty(cellinfo);
 
             //if (surroundedByEmpty && cellinfo.Volume == 0)
             //    cellinfo.State = CellState.Destroy;
@@ -30,13 +28,6 @@ namespace VoxelWater
                 cellinfo.State = CellState.Empty;
             else if (down)
                 cellinfo.State = CellState.Fall;
-            //else if (emptyNeighbour != null && (bottom==null || bottom.State != CellState.Still))
-            //{
-            //    State = CellState.Pushed;
-            //    //to not have stuck blocks
-            //    if(OldState == CellState.Empty)
-            //        State = CellState.Pressured;
-            //} 
             else if (sum > 0 && cellinfo.Volume > 1)
                 cellinfo.State = CellState.Flow;
             else if (cellinfo.BottomState != CellState.None &&
@@ -49,12 +40,6 @@ namespace VoxelWater
             else if (sum > 0 && cellinfo.Volume == 1)
                 cellinfo.State = CellState.Shallow;
 
-            //state not changed
-            /*
-            if (cellinfo.OldState == cellinfo.State && 
-                (cellinfo.State == CellState.Still || cellinfo.State == CellState.Empty))
-                return new CellInfo();
-            */
             return cellinfo;
         }
 
@@ -73,7 +58,6 @@ namespace VoxelWater
                     break;
                 case CellState.Fall:
                     CellInfo newCell = Fall(ref cellinfo);
-                    //write a func for isEmpty cell struct
                     if(newCell.State == CellState.None)
                     {
                         break;
@@ -83,9 +67,6 @@ namespace VoxelWater
                         newCells.Add(newCell);
                         break;
                     }
-                //case CellState.Pushed:
-                //Pushed();
-                //break;
                 case CellState.Destroy:
                     Destroy();
                     break;
@@ -243,7 +224,6 @@ namespace VoxelWater
             };
         }
 
-        //remove grid and cell use
         static private void FlowAll(ref CellInfo cellinfo, int volume)
         {
             if (cellinfo.BottomState != CellState.None)
@@ -282,18 +262,11 @@ namespace VoxelWater
 
         static private bool ColliderExists(CellInfo cellinfo, bool[] colliders, float x, float y, float z)
         {
-            Vector3 currentPosition = new Vector3(cellinfo.X, cellinfo.Y, cellinfo.Z);
-            Vector3 checkDirection = new Vector3(x, y, z);
-
-            return CellInfoUtility.Get(cellinfo.Xgrid + 1+(int)x, cellinfo.Ygrid + 1+ (int)y, cellinfo.Zgrid + 1+ (int)z, cellinfo.GridSizeCI, colliders);
-            //RaycastHit[] colliders = Physics.SphereCastAll(currentPosition, 0.25f, checkDirection, 1.20f);
-
-            //if (colliders.Length > 0)
-            //{
-            //    return true;
-            //}
-
-            return false;
+            //convert coordinates for colliders array
+            int xcoll = cellinfo.Xgrid + 1 + (int)x;
+            int ycoll = cellinfo.Ygrid + 1 + (int)y;
+            int zcoll = cellinfo.Zgrid + 1 + (int)z;
+            return CellInfoUtility.Get(xcoll, ycoll, zcoll, cellinfo.GridSizeCI, colliders);
         }
         static private void Pressured(ref CellInfo cellinfo)
         {
@@ -333,30 +306,22 @@ namespace VoxelWater
                 cellinfo.BottomVolume += cellinfo.Volume;
                 cellinfo.Volume = 0;
                 return EmptyCell;
-            }
-                
+            }        
         }
 
-        //remove cell
-        /*
-        static public Cell GetEmptyNeighbour(ref CellInfo cellinfo, Cell front, Cell right, Cell back, Cell left, Cell bottom)
+        static private void Merge(ref CellInfo cellinfo)
         {
-            Cell emptyCell = null;
-            if (cellinfo.BottomState != CellState.None && cellinfo.BottomState == CellState.Empty)
-                emptyCell = bottom;
-            else if (cellinfo.FrontState != CellState.None && cellinfo.FrontState == CellState.Empty)
-                emptyCell = front;
-            else if (cellinfo.RightState != CellState.None && cellinfo.RightState == CellState.Empty)
-                emptyCell = right;
-            else if (cellinfo.BackState != CellState.None && cellinfo.BackState == CellState.Empty)
-                emptyCell = back;
-            else if (cellinfo.LeftState != CellState.None && cellinfo.LeftState == CellState.Empty)
-                emptyCell = left;
-
-            return emptyCell;
+            cellinfo.BottomVolume += cellinfo.Volume;
+            cellinfo.Volume = 0;
         }
-        */
 
+        static private void Destroy()
+        {
+            //grid.VolumeExcess += cellinfo.Volume;
+            //DeleteCell();
+        }
+
+        /*
         static private bool SurroundedByEmpty(CellInfo cellinfo)
         {
             if ((cellinfo.BottomState != CellState.None && cellinfo.BottomState != CellState.Empty))
@@ -377,60 +342,6 @@ namespace VoxelWater
             //    return false;
 
             return true;
-        }
-
-        static private void Merge(ref CellInfo cellinfo)
-        {
-            cellinfo.BottomVolume += cellinfo.Volume;
-            cellinfo.Volume = 0;
-        }
-
-        static private void Destroy()
-        {
-            //grid.VolumeExcess += cellinfo.Volume;
-            //DeleteCell();
-        }
-
-        //not used
-        /*
-        private void Pushed()
-        {
-            Cell emptyCell = GetEmptyNeighbour();
-
-            emptyCell.cellinfo.Volume++;
-            emptyCell.Mesh.enabled = true;
-
-            cellinfo.Volume--;
-            if (cellinfo.Volume == 0)
-            {
-                Mesh.enabled = false;
-            }
-        }
-        */
-        //not used
-        /*
-        private void DeleteCell()
-        {
-            //grid.DeleteCell(this);
-            //Destroy(gameObject);
-        }
-        */
-        //not used
-        /*
-        private void Remove()
-        {
-            if (top != null)
-                top.cellinfo.Volume = 0;
-            if (bottom != null)
-                bottom.cellinfo.Volume = 0;
-            if (right != null)
-                right.cellinfo.Volume = 0;
-            if (left != null)
-                left.cellinfo.Volume = 0;
-            if (front != null)
-                front.cellinfo.Volume = 0;
-            if (back != null)
-                back.cellinfo.Volume = 0;
         }
         */
     }

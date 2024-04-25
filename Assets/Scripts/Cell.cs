@@ -24,24 +24,24 @@ namespace VoxelWater
     public struct CellInfo : IEquatable<CellInfo>
     {
         // main info
+        public CellState State;
+        public CellState OldState;
         public float X;
         public float Y;
         public float Z;
+        // coordinates in a grid
         public int Xgrid;
         public int Ygrid;
         public int Zgrid;
         public int Volume;
 
+        // grid info
         public int GridSize;
         public int GridSizeCI;
-        //grid number?
-        //public int GridNumber;
-        public CellState State;
-        public CellState OldState;
+        public int Offset;
+        public int OffsetCI;
 
         // Neighboring cells
-        //have CellStates instead
-        //that are manually updates outside of thread?
         public CellState TopState;
         public CellState BottomState;
         public CellState RightState;
@@ -74,35 +74,44 @@ namespace VoxelWater
         public static bool operator ==(CellInfo cell1, CellInfo cell2) => cell1.Equals(cell2);
 
         public static bool operator !=(CellInfo cell1, CellInfo cell2) => !(cell1 == cell2);
-    }
 
+        public int GetGridXCI(GridInfo grid)
+        {
+            return (int)X + grid.Offset - (grid.X * grid.GridSize) + grid.OffsetCI;
+        }
+        public int GetGridYCI(GridInfo grid)
+        {
+            return (int)Y + grid.Offset - (grid.Y * grid.GridSize) + grid.OffsetCI;
+        }
+        public int GetGridZCI(GridInfo grid)
+        {
+            return (int)Z + grid.Offset - (grid.Z * grid.GridSize) + grid.OffsetCI;
+        }
+        public int GetGridX(GridInfo grid)
+        {
+            return (int)X + grid.Offset - (grid.X * grid.GridSize);
+        }
+        public int GetGridY(GridInfo grid)
+        {
+            return (int)Y + grid.Offset - (grid.Y * grid.GridSize);
+        }
+        public int GetGridZ(GridInfo grid)
+        {
+            return (int)Z + grid.Offset - (grid.Z * grid.GridSize);
+        }
+    }
     public class Cell : MonoBehaviour, IEquatable<Cell>
     {
         public CellInfo Cellinfo;
 
-        //??
+        //needed for the first cell
         public GameObject GridObject;
 
         //special state enable
         public bool CreateWater = false;
         public bool RemoveWater = false;
 
-        //grid number?
-        //remove
         public Grid Grid;
-
-        // Neighboring cells
-        //have CellStates instead
-        //that are manually updates outside of thread?      
-        //remove
-        /*
-        public Cell Top;
-        public Cell Bottom;
-        public Cell Right;
-        public Cell Left;
-        public Cell Front;
-        public Cell Back;  
-        */
 
         //extra
         public MeshRenderer Mesh;
@@ -113,7 +122,7 @@ namespace VoxelWater
         public Material PressuredMaterial;
         public Material ShallowMaterial;
 
-        //diagostic
+        //diagnostic
         public Diagnostic Diagnostics;
 
         private void Start()
@@ -146,13 +155,6 @@ namespace VoxelWater
             Cellinfo.X = transform.position.x;
             Cellinfo.Y = transform.position.y;
             Cellinfo.Z = transform.position.z;
-            /*
-            Cellinfo.Xgrid = (int)Cellinfo.X + Grid.Offset - (Grid.X * Grid.GridSize);
-            Cellinfo.Ygrid = (int)Cellinfo.Y + Grid.Offset - (Grid.Y * Grid.GridSize);
-            Cellinfo.Zgrid = (int)Cellinfo.Z + Grid.Offset - (Grid.Z * Grid.GridSize);
-            Cellinfo.GridSize = Grid.GridSize;
-            Cellinfo.GridSizeCI = Grid.GridSizeCI;
-            */
 
             if (RemoveWater)
             {
@@ -175,38 +177,16 @@ namespace VoxelWater
             ChangeMaterial();
         }
 
-        //move to Grid
-        /*
-        public void StartProcess()
-        {
-            //if (Cellinfo.State == CellState.Flow || Cellinfo.State != CellState.Fall)
-            //{
-                Grid.GetNeighboursInfo(this);
-                //Grid.UpdateNeighboursInfo(this);
-                
-            //}
-
-            
-            if (!RemoveWater && !CreateWater) CellUtility.SetState(ref Cellinfo);
-            
-
-            CellUtility.ActivateState(ref Cellinfo, Grid);
-
-            //if (Cellinfo.State != CellState.Still)
-            //{
-                Grid.UpdateNeighboursInfo(this);
-                //Grid.UpdateNeighboursInfo(this);
-            //}
-        }
-        */
-        public void FillCellInfo(Grid grid, float x, float y, float z)
+        public void FillCellInfo(GridInfo grid, float x, float y, float z)
         {
             Cellinfo.Xgrid = (int)x + grid.Offset - (grid.X * grid.GridSize);
             Cellinfo.Ygrid = (int)y + grid.Offset - (grid.Y * grid.GridSize);
             Cellinfo.Zgrid = (int)z + grid.Offset - (grid.Z * grid.GridSize);
             Cellinfo.GridSize = grid.GridSize;
             Cellinfo.GridSizeCI = grid.GridSizeCI;
-        }
+            Cellinfo.Offset = grid.Offset;
+            Cellinfo.OffsetCI = grid.OffsetCI;
+    }
 
         public void RenderCell()
         {
@@ -238,7 +218,7 @@ namespace VoxelWater
         
         private bool CheckIfSurrounded()
         {
-            if(//Cellinfo.TopState != CellState.Empty && Cellinfo.TopState != CellState.None &&
+            if(Cellinfo.TopState != CellState.Empty && Cellinfo.TopState != CellState.None &&
                Cellinfo.BottomState != CellState.Empty && Cellinfo.BottomState != CellState.None &&
                Cellinfo.RightState != CellState.Empty && Cellinfo.RightState != CellState.None &&
                Cellinfo.LeftState != CellState.Empty && Cellinfo.LeftState != CellState.None &&

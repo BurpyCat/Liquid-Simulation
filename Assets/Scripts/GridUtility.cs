@@ -1,65 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Dynamic;
-using Unity.Collections;
-using Unity.Jobs;
-using Unity.VisualScripting;
-using UnityEditor.PackageManager;
 using UnityEngine;
-using VoxelWater;
 
 namespace VoxelWater
-{
-    public struct UpdateGridsParallel : IJobFor
-    {
-        public int gridSizeFull;
-        public int gridSizeFullCI;
-        [NativeDisableParallelForRestriction] public NativeArray<CellInfo> newCellsArr;
-        [NativeDisableParallelForRestriction] public NativeArray<int> newCellsCountArr;
-        [NativeDisableParallelForRestriction] public NativeArray<CellInfo> updatedCellsArr;
-        [NativeDisableParallelForRestriction] public NativeArray<int> updatedCellsCountArr;
-
-        [NativeDisableParallelForRestriction] public NativeArray<CellInfo> cellsInfo_listArr;
-        [NativeDisableParallelForRestriction] public NativeArray<int> cellsInfoCountArr;
-        [NativeDisableParallelForRestriction] public NativeArray<CellInfo> cellsInfoArr;
-        [NativeDisableParallelForRestriction] public NativeArray<GridInfo> gridInfoArr;
-
-        [NativeDisableParallelForRestriction] public NativeArray<bool> collidersArr;
-        public void Execute(int i)
-        {
-            //copy from bigger arrays
-            GridInfo gridInfo = gridInfoArr[i];
-            if (!gridInfo.Active)
-                return;
-
-            int fullGridSize = gridInfo.GridSize * gridInfo.GridSize * gridInfo.GridSize;
-            int fullGridSizeCI = gridInfo.GridSizeCI * gridInfo.GridSizeCI * gridInfo.GridSizeCI;
-
-            int cellsInfoCount = cellsInfoCountArr[i];
-            CellInfo[] cellsInfo_list = CellInfoUtility.ExtractCellInfoArray(i, cellsInfo_listArr, fullGridSize, cellsInfoCount);
-            CellInfo[] cellsInfo = CellInfoUtility.ExtractCellInfoArray(i, cellsInfoArr, fullGridSizeCI, fullGridSizeCI);
-
-            CellInfo[] newCells = new CellInfo[fullGridSize];
-            int newCellsCount = 0;
-            CellInfo[] updatedCells = new CellInfo[fullGridSize];
-            int updatedCellsCount = 0;
-
-            bool[] colliders = CellInfoUtility.ExtractBoolArray(i, collidersArr, fullGridSizeCI, fullGridSizeCI);
-
-            GridUtility.UpdateCells(cellsInfo_list, cellsInfoCount, cellsInfo, gridInfo,
-                newCells, ref newCellsCount, updatedCells, ref updatedCellsCount, colliders);
-
-            //copy to bigger arrays
-            CellInfoUtility.InjectCellInfoArray(i, ref newCellsArr, fullGridSize, newCells, newCellsCount);
-            newCellsCountArr[i] = newCellsCount;
-            CellInfoUtility.InjectCellInfoArray(i, ref updatedCellsArr, fullGridSize, updatedCells, updatedCellsCount);
-            updatedCellsCountArr[i] = updatedCellsCount;
-
-            CellInfoUtility.InjectCellInfoArray(i, ref cellsInfo_listArr, fullGridSize, cellsInfo_list, cellsInfoCount);
-            CellInfoUtility.InjectCellInfoArray(i, ref cellsInfoArr, fullGridSizeCI, cellsInfo, fullGridSizeCI);
-        }
-    }
-    
+{  
     static public class GridUtility
     {
         static public void UpdateCells(CellInfo[] cellsList, int count, CellInfo[] cells, GridInfo gridInfo, CellInfo[] newCells, ref int newCount, CellInfo[] updatedCells, ref int updatedCount, bool[] colliders)
@@ -68,25 +11,28 @@ namespace VoxelWater
             {
                 List<CellInfo> newCellsTemp = new List<CellInfo>();
                 CellInfo newCell = cellsList[i];
+                
                 //update local cells info
                 newCell = GetCellInfo(newCell, cells, gridInfo);
-
                 //if empty, skip
                 if (newCell.State == CellState.None)
                     continue;
+                
                 //get info from neighbors
                 newCell = GetNeighboursInfo(newCell, cells, gridInfo);
                 //set state
                 newCell = CellUtility.SetState(newCell, colliders);
 
+                //fix
                 //check if states activation is needed
-                if (newCell.OldState == newCell.State &&
-                (newCell.State == CellState.Still || newCell.State == CellState.Empty))
-                {
-                    UpdateInfoGrid(newCell, cells, gridInfo);
-                    cellsList[i] = newCell;
-                    continue;
-                }
+                //if (newCell.OldState == newCell.State &&
+                //(newCell.State == CellState.Still || newCell.State == CellState.Empty))
+                //{
+                //    UpdateInfoGrid(newCell, cells, gridInfo);
+                //    cellsList[i] = newCell;
+                //    continue;
+                //}
+                
                 //activate state
                 newCell = CellUtility.ActivateStateInfo(newCell, newCellsTemp, colliders);
                 //check if any updating is needed
@@ -111,38 +57,38 @@ namespace VoxelWater
                 foreach(var cell in newCellsTemp)
                 {
                     newCells[newCount] = cell;
-                    newCount= 1+newCount;
+                    newCount++;
                 }
-                //newCells.AddRange(newCellsTemp);
+
                 updatedCells[updatedCount]=newCell;
-                updatedCount=1+ updatedCount;
+                updatedCount++;
 
                 cellsList[i] = newCell;
             }
         }
         static public void UpdateInfoGrid(CellInfo cell, CellInfo[] cells, GridInfo gridInfo)
         {
-            int x = (int)cell.X + gridInfo.Offset - (gridInfo.X * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int y = (int)cell.Y + gridInfo.Offset - (gridInfo.Y * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int z = (int)cell.Z + gridInfo.Offset - (gridInfo.Z * gridInfo.GridSize) + gridInfo.OffsetCI;
+            int x = cell.GetGridXCI(gridInfo);
+            int y = cell.GetGridYCI(gridInfo);
+            int z = cell.GetGridZCI(gridInfo);
 
             CellInfoUtility.Put(cell, x, y, z, gridInfo.GridSizeCI, cells);
         }
 
         static public CellInfo GetCellInfo(CellInfo cell, CellInfo[] cells, GridInfo gridInfo)
         {
-            int x = (int)cell.X + gridInfo.Offset - (gridInfo.X * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int y = (int)cell.Y + gridInfo.Offset - (gridInfo.Y * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int z = (int)cell.Z + gridInfo.Offset - (gridInfo.Z * gridInfo.GridSize) + gridInfo.OffsetCI;
+            int x = cell.GetGridXCI(gridInfo);
+            int y = cell.GetGridYCI(gridInfo);
+            int z = cell.GetGridZCI(gridInfo);
 
             return CellInfoUtility.Get(x, y, z, gridInfo.GridSizeCI, cells);
         }
 
         static public CellInfo GetNeighboursInfo(CellInfo cell, CellInfo[] cells, GridInfo gridInfo)
         {
-            int x = (int)cell.X + gridInfo.Offset - (gridInfo.X * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int y = (int)cell.Y + gridInfo.Offset - (gridInfo.Y * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int z = (int)cell.Z + gridInfo.Offset - (gridInfo.Z * gridInfo.GridSize) + gridInfo.OffsetCI;
+            int x = cell.GetGridXCI(gridInfo);
+            int y = cell.GetGridYCI(gridInfo);
+            int z = cell.GetGridZCI(gridInfo);
 
             CellInfo Front = CellInfoUtility.Get(x + 1, y, z, gridInfo.GridSizeCI, cells);
             CellInfo Right = CellInfoUtility.Get(x, y, z - 1, gridInfo.GridSizeCI, cells);
@@ -178,9 +124,9 @@ namespace VoxelWater
         }
         static public CellInfo GetNewNeighboursInfo(CellInfo cell, CellInfo[] cells, GridInfo gridInfo)
         {
-            int x = (int)cell.X + gridInfo.Offset - (gridInfo.X * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int y = (int)cell.Y + gridInfo.Offset - (gridInfo.Y * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int z = (int)cell.Z + gridInfo.Offset - (gridInfo.Z * gridInfo.GridSize) + gridInfo.OffsetCI;
+            int x = cell.GetGridXCI(gridInfo);
+            int y = cell.GetGridYCI(gridInfo);
+            int z = cell.GetGridZCI(gridInfo);
 
             CellInfo Front = CellInfoUtility.Get(x + 1, y, z, gridInfo.GridSizeCI, cells);
             CellInfo Right = CellInfoUtility.Get(x, y, z - 1, gridInfo.GridSizeCI, cells);
@@ -216,12 +162,11 @@ namespace VoxelWater
 
         static public void UpdateNeighboursInfo(CellInfo cell, CellInfo[] cells, GridInfo gridInfo)
         {
-            int x = (int)cell.X + gridInfo.Offset - (gridInfo.X * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int y = (int)cell.Y + gridInfo.Offset - (gridInfo.Y * gridInfo.GridSize) + gridInfo.OffsetCI;
-            int z = (int)cell.Z + gridInfo.Offset - (gridInfo.Z * gridInfo.GridSize) + gridInfo.OffsetCI;
+            int x = cell.GetGridXCI(gridInfo);
+            int y = cell.GetGridYCI(gridInfo);
+            int z = cell.GetGridZCI(gridInfo);
 
             //update only volume
-            //might be a problem
             CellInfo Front = UpdateNeighboursInfo(cell.FrontVolume, CellInfoUtility.Get(x + 1, y, z, gridInfo.GridSizeCI, cells));
             CellInfo Right = UpdateNeighboursInfo(cell.RightVolume, CellInfoUtility.Get(x, y, z - 1, gridInfo.GridSizeCI, cells));
             CellInfo Back = UpdateNeighboursInfo(cell.BackVolume, CellInfoUtility.Get(x - 1, y, z, gridInfo.GridSizeCI, cells));
@@ -250,7 +195,8 @@ namespace VoxelWater
             }
         }
 
-        static public bool[] GenerateColliders(Grid grid)
+        //could make more efficient
+        static public bool[] GenerateColliders(GridInfo grid)
         {
             //true 0,0,0 point of a grid
             int x0 = (grid.X * grid.GridSize) - grid.Offset;

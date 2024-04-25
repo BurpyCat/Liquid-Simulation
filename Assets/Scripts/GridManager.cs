@@ -1,8 +1,6 @@
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Jobs;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace VoxelWater
@@ -11,9 +9,12 @@ namespace VoxelWater
     {
         Grid[,,] Grids;
         public List<Grid> GridsList;
+        public GameObject GridPrefab;
+
+        //for parallel work
         public Grid[,] GridsParallel;
         public int[] GridsCount;
-        public GameObject GridPrefab;
+        
         //(GridSize -1 )/2
         //nelyginis
         public int GridSize = 21;
@@ -36,22 +37,11 @@ namespace VoxelWater
             UpdateGridsParallel();
         }
 
-        private void UpdateGrids()
-        {
-            int count = GridsList.Count;
-            for(int i=0; i<count; i++)
-            {
-                Grid grid = GridsList[i];
-                grid.UpdateCellsInfo();
-            }
-        }
-
         private void UpdateGridsParallel()
         {
             for (int i = 0; i < 7; i++)
             {
                 //fix this where array is only filled with active grids
-                //lmao active grids dont work???
                 if(GridsCount[i]!=0)
                     UpdateGridCategory(i);
             }
@@ -71,43 +61,6 @@ namespace VoxelWater
                 } 
             }
             Debug.Log(countActive);
-            //parallel update
-            /*
-            int gridSizeFull = GridSize * GridSize * GridSize;
-            int gridSizeFullCI = (GridSize+2) * (GridSize + 2) * (GridSize + 2);
-            CellInfo[] newCellsArr = new CellInfo[gridSizeFull * count];
-            int[] newCellsCountArr = new int[count];
-            CellInfo[] updatedCellsArr = new CellInfo[gridSizeFull * count];
-            int[] updatedCellsCountArr = new int[count];
-
-            CellInfo[] cellsInfo_listArr = new CellInfo[gridSizeFull * count];
-            int[] cellsInfoCountArr = new int[count];
-            CellInfo[] cellsInfoArr = new CellInfo[gridSizeFullCI * count];
-            GridInfo[] gridInfoArr = new GridInfo[count];
-            //copy all
-            for (int j = 0; j < count; j++)
-            {
-                Grid grid = GridsParallel[ind, j];
-                int index1 = j*gridSizeFull;
-                cellsInfoCountArr[j] = grid.CellsInfoCount;
-                for(int k=0; k< cellsInfoCountArr[j]; k++)
-                {
-                    cellsInfo_listArr[k + index1] = grid.CellsInfo_list[k];
-                }
-                int index2 = j * gridSizeFullCI;
-                for (int k = 0; k < gridSizeFullCI; k++)
-                {
-                    cellsInfoArr[k + index2] = grid.CellsInfo[k];
-                }
-                gridInfoArr[j] = grid.GridInfo;
-            }
-            //mashalah
-            for (int j = 0; j < count; j++)
-            {
-                Grid.UpdateGridCellState(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
-                                        ref cellsInfo_listArr, cellsInfoCountArr, ref cellsInfoArr, gridInfoArr);
-            }
-            */
             
             if (countActive == 0)
                 return;
@@ -146,7 +99,6 @@ namespace VoxelWater
                 }
                 gridInfoArr[j] = grid.GridInfo;
             }
-            //mashalah
             
             UpdateGridsParallel update = new UpdateGridsParallel
             {
@@ -169,13 +121,6 @@ namespace VoxelWater
 
             scheduleparalleljob.Complete();
             
-            /*
-            for (int j = 0; j < count; j++)
-            {
-                Grid.UpdateGridCellState2(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
-                                        ref cellsInfo_listArr, cellsInfoCountArr, ref cellsInfoArr, gridInfoArr);
-            }
-            */
             //last update
             for (int j = 0; j < count; j++)
             {
@@ -261,7 +206,6 @@ namespace VoxelWater
                     return null;
 
                 int newx = x - GridSize;
-                //PutIntoGridInfo(Grids[X,Y,Z], Grids[X + 1, Y, Z].Cells[newx, y, z], x,y,z);
                 return Grids[X + 1, Y, Z].Cells[newx, y,z];
             }
             else if (x <= -1)
@@ -270,7 +214,6 @@ namespace VoxelWater
                     return null;
                 
                 int newx = x + GridSize;
-                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X - 1, Y, Z].Cells[newx, y, z], x, y, z);
                 return Grids[X - 1, Y, Z].Cells[newx, y, z];
             }
             else if (y >= GridSize)
@@ -279,7 +222,6 @@ namespace VoxelWater
                     return null;
 
                 int newy = y - GridSize;
-                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X, Y + 1, Z].Cells[x, newy, z], x, y, z);
                 return Grids[X, Y + 1, Z].Cells[x, newy, z];
             }
             else if (y <= -1)
@@ -288,7 +230,6 @@ namespace VoxelWater
                     return null;
 
                 int newy = y + GridSize;
-                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X, Y - 1, Z].Cells[x, newy, z], x, y, z);
                 return Grids[X, Y - 1, Z].Cells[x, newy, z];
             }
             else if (z >= GridSize)
@@ -299,7 +240,6 @@ namespace VoxelWater
                 }
 
                 int newz = z - GridSize;
-                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X, Y, Z + 1].Cells[x, y, newz], x, y, z);
                 return Grids[X, Y, Z + 1].Cells[x, y, newz];
             }
             else if (z <= -1)
@@ -310,38 +250,26 @@ namespace VoxelWater
                 }
 
                 int newz = z + GridSize;
-                //PutIntoGridInfo(Grids[X, Y, Z], Grids[X, Y, Z - 1].Cells[x, y, newz], x, y, z);
                 return Grids[X, Y, Z - 1].Cells[x, y, newz];
             }
             return Grids[X, Y, Z].Cells[x, y, z];
         }
 
-        //temporary
-        public void PutIntoGridInfo(Grid grid, Cell cell, int x, int y, int z)
-        {
-            if (cell == null)
-                return;
-            else
-            {
-                CellInfoUtility.Put(cell.Cellinfo, x + 1, y + 1, z + 1, grid.GridSizeCI, grid.CellsInfo);
-            }
-        }
-
-        public void CreateGrid(int X, int Y, int Z)
+        public void CreateGrid(int x, int y, int z)
         {
             GameObject newGrid = Instantiate(GridPrefab, transform);
-            newGrid.transform.position = new Vector3(X, Y, Z);
+            newGrid.transform.position = new Vector3(x, y, z);
 
             Grid gridScript = newGrid.GetComponent<Grid>();
-            gridScript.Initiate(X, Y, Z);
+            gridScript.Initiate(x, y, z);
 
-            PutIntoGridManager(X, Y, Z, gridScript);
+            PutIntoGridManager(x, y, z, gridScript);
         }
 
-        public void PutIntoGridManager(int X, int Y, int Z, Grid grid)
+        public void PutIntoGridManager(int x, int y, int z, Grid grid)
         {
             //expansion?
-            Grids[X+GridOffset, Y + GridOffset, Z + GridOffset] = grid;
+            Grids[x+GridOffset, y + GridOffset, z + GridOffset] = grid;
             //list
             GridsList.Add(grid);
             int num = grid.GridInfo.Num;

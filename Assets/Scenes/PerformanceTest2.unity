@@ -1305,8 +1305,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GridsList: []
-  GridsCount: 
   GridPrefab: {fileID: 746341858178554276, guid: c2db4ba07592d2649876062b0d6b83c6, type: 3}
+  GridsCount: 
   GridSize: 3
   GridOffset: 75
   GridManagerSize: 151
@@ -2919,8 +2919,6 @@ MonoBehaviour:
   CellsInfoCount: 0
   CellsInfo_list: []
   CellsInfo: []
-  GridSizeCI: 0
-  OffsetCI: 1000
   Manager: {fileID: 774194926}
   Cube: {fileID: 4885632184922983257, guid: 57a301fda5cedf54fbb2eed2a8aeca39, type: 3}
   GridPrefab: {fileID: 746341858178554276, guid: c2db4ba07592d2649876062b0d6b83c6, type: 3}
@@ -2936,14 +2934,6 @@ MonoBehaviour:
     GridSizeCI: 0
     OffsetCI: 0
     Active: 0
-  X: 0
-  Y: 0
-  Z: 0
-  Offset: 50
-  GridSize: 100
-  GridOffset: 50
-  newCellsPUBLIC: 0
-  updatedCellsPUBLIC: 0
   first: 1
   Colliders: 
 --- !u!1 &1863394281
