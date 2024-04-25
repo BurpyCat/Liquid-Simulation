@@ -23,6 +23,8 @@ namespace VoxelWater
         [NativeDisableParallelForRestriction] public NativeArray<int> cellsInfoCountArr;
         [NativeDisableParallelForRestriction] public NativeArray<CellInfo> cellsInfoArr;
         [NativeDisableParallelForRestriction] public NativeArray<GridInfo> gridInfoArr;
+
+        [NativeDisableParallelForRestriction] public NativeArray<bool> collidersArr;
         public void Execute(int i)
         {
             //copy from bigger arrays
@@ -42,8 +44,10 @@ namespace VoxelWater
             CellInfo[] updatedCells = new CellInfo[fullGridSize];
             int updatedCellsCount = 0;
 
+            bool[] colliders = CellInfoUtility.ExtractBoolArray(i, collidersArr, fullGridSizeCI, fullGridSizeCI);
+
             GridUtility.UpdateCells(cellsInfo_list, cellsInfoCount, cellsInfo, gridInfo,
-                newCells, ref newCellsCount, updatedCells, ref updatedCellsCount);
+                newCells, ref newCellsCount, updatedCells, ref updatedCellsCount, colliders);
 
             //copy to bigger arrays
             CellInfoUtility.InjectCellInfoArray(i, ref newCellsArr, fullGridSize, newCells, newCellsCount);
@@ -58,7 +62,7 @@ namespace VoxelWater
     
     static public class GridUtility
     {
-        static public void UpdateCells(CellInfo[] cellsList, int count, CellInfo[] cells, GridInfo gridInfo, CellInfo[] newCells, ref int newCount, CellInfo[] updatedCells, ref int updatedCount)
+        static public void UpdateCells(CellInfo[] cellsList, int count, CellInfo[] cells, GridInfo gridInfo, CellInfo[] newCells, ref int newCount, CellInfo[] updatedCells, ref int updatedCount, bool[] colliders)
         {
             for (int i = 0; i < count; i++)
             {
@@ -73,7 +77,7 @@ namespace VoxelWater
                 //get info from neighbors
                 newCell = GetNeighboursInfo(newCell, cells, gridInfo);
                 //set state
-                newCell = CellUtility.SetState(newCell);
+                newCell = CellUtility.SetState(newCell, colliders);
 
                 //check if states activation is needed
                 if (newCell.OldState == newCell.State &&
@@ -84,7 +88,7 @@ namespace VoxelWater
                     continue;
                 }
                 //activate state
-                newCell = CellUtility.ActivateStateInfo(newCell, newCellsTemp);
+                newCell = CellUtility.ActivateStateInfo(newCell, newCellsTemp, colliders);
                 //check if any updating is needed
                 if (newCell == cellsList[i] && newCellsTemp.Count == 0)
                 {
@@ -244,6 +248,48 @@ namespace VoxelWater
                 cell.Volume = volume;
                 return cell;
             }
+        }
+
+        static public bool[] GenerateColliders(Grid grid)
+        {
+            //true 0,0,0 point of a grid
+            int x0 = (grid.X * grid.GridSize) - grid.Offset;
+            int y0 = (grid.Y * grid.GridSize) - grid.Offset;
+            int z0 = (grid.Z * grid.GridSize) - grid.Offset;
+            bool[] colliders = new bool[grid.GridSizeCI* grid.GridSizeCI* grid.GridSizeCI];
+
+            for(int x = 0; x < grid.GridSize; x++)
+            for(int y = 0; y < grid.GridSize; y++)
+            for(int z = 0; z < grid.GridSize; z++)
+            {
+                CheckEveryDirectionColliders(colliders, grid.GridSizeCI, x+1, y+1, z+1, x0+x, y0+y, z0+z);
+            }
+            return colliders;
+        }
+
+        static private void CheckEveryDirectionColliders(bool[] colliders, int size, int x, int y, int z, float xpos, float ypos, float zpos)
+        {
+            CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 1, 0, 0), x+1, y, z, size, colliders);
+            CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, -1, 0, 0), x-1, y, z, size, colliders);
+            CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, 1, 0), x, y+1, z, size, colliders);
+            CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, -1, 0), x, y-1, z, size, colliders);
+            CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, 0, 1), x, y, z+1, size, colliders);
+            CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, 0, -1), x, y, z-1, size, colliders);
+        }
+
+        static private bool ColliderExists(float x, float y, float z, float xdir, float ydir, float zdir)
+        {
+            Vector3 currentPosition = new Vector3(x, y, z);
+            Vector3 checkDirection = new Vector3(xdir, ydir, zdir);
+
+            RaycastHit[] colliders = Physics.SphereCastAll(currentPosition, 0.25f, checkDirection, 1.20f);
+
+            if (colliders.Length > 0)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

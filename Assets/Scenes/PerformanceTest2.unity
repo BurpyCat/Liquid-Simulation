@@ -213,7 +213,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 67244836}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -1304,6 +1304,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c1c31d3956c12247b13840ef6940a4f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GridsList: []
+  GridsCount: 
   GridPrefab: {fileID: 746341858178554276, guid: c2db4ba07592d2649876062b0d6b83c6, type: 3}
   GridSize: 3
   GridOffset: 75
@@ -1689,7 +1691,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 958024654}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -2210,7 +2212,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1071141853}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -2307,7 +2309,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1080744136}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -2501,7 +2503,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1148187080}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -2913,6 +2915,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65017c66f16d81e409c23bea915cf2b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Cells_list: []
+  CellsInfoCount: 0
+  CellsInfo_list: []
+  CellsInfo: []
   GridSizeCI: 0
   OffsetCI: 1000
   Manager: {fileID: 774194926}
@@ -2923,18 +2929,23 @@ MonoBehaviour:
     X: 0
     Y: 0
     Z: 0
+    Num: 0
     Offset: 0
     GridSize: 0
     GridOffset: 0
     GridSizeCI: 0
     OffsetCI: 0
+    Active: 0
   X: 0
   Y: 0
   Z: 0
   Offset: 50
   GridSize: 100
   GridOffset: 50
+  newCellsPUBLIC: 0
+  updatedCellsPUBLIC: 0
   first: 1
+  Colliders: 
 --- !u!1 &1863394281
 GameObject:
   m_ObjectHideFlags: 0

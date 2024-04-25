@@ -27,7 +27,13 @@ namespace VoxelWater
         public float X;
         public float Y;
         public float Z;
+        public int Xgrid;
+        public int Ygrid;
+        public int Zgrid;
         public int Volume;
+
+        public int GridSize;
+        public int GridSizeCI;
         //grid number?
         //public int GridNumber;
         public CellState State;
@@ -140,6 +146,13 @@ namespace VoxelWater
             Cellinfo.X = transform.position.x;
             Cellinfo.Y = transform.position.y;
             Cellinfo.Z = transform.position.z;
+            /*
+            Cellinfo.Xgrid = (int)Cellinfo.X + Grid.Offset - (Grid.X * Grid.GridSize);
+            Cellinfo.Ygrid = (int)Cellinfo.Y + Grid.Offset - (Grid.Y * Grid.GridSize);
+            Cellinfo.Zgrid = (int)Cellinfo.Z + Grid.Offset - (Grid.Z * Grid.GridSize);
+            Cellinfo.GridSize = Grid.GridSize;
+            Cellinfo.GridSizeCI = Grid.GridSizeCI;
+            */
 
             if (RemoveWater)
             {
@@ -186,6 +199,14 @@ namespace VoxelWater
             //}
         }
         */
+        public void FillCellInfo(Grid grid, float x, float y, float z)
+        {
+            Cellinfo.Xgrid = (int)x + grid.Offset - (grid.X * grid.GridSize);
+            Cellinfo.Ygrid = (int)y + grid.Offset - (grid.Y * grid.GridSize);
+            Cellinfo.Zgrid = (int)z + grid.Offset - (grid.Z * grid.GridSize);
+            Cellinfo.GridSize = grid.GridSize;
+            Cellinfo.GridSizeCI = grid.GridSizeCI;
+        }
 
         public void RenderCell()
         {
@@ -215,14 +236,34 @@ namespace VoxelWater
             }
         }
         
+        private bool CheckIfSurrounded()
+        {
+            if(//Cellinfo.TopState != CellState.Empty && Cellinfo.TopState != CellState.None &&
+               Cellinfo.BottomState != CellState.Empty && Cellinfo.BottomState != CellState.None &&
+               Cellinfo.RightState != CellState.Empty && Cellinfo.RightState != CellState.None &&
+               Cellinfo.LeftState != CellState.Empty && Cellinfo.LeftState != CellState.None &&
+               Cellinfo.FrontState != CellState.Empty && Cellinfo.FrontState != CellState.None &&
+               Cellinfo.BackState != CellState.Empty && Cellinfo.BackState != CellState.None)
+            { 
+                return true; 
+            }
+            return false;
+        }
+
         private void RenderMesh()
         {
             if(Cellinfo.State == CellState.Empty || (Cellinfo.State != CellState.Fall && Cellinfo.Volume == 0))
             {
                 Mesh.enabled = false;
+                return;
             }
-            else
-                Mesh.enabled = true;
+            if(CheckIfSurrounded())
+            {
+                Mesh.enabled = false;
+                return;
+            } 
+            
+            Mesh.enabled = true;
         }
     }
 }

@@ -50,6 +50,8 @@ namespace VoxelWater
         {
             for (int i = 0; i < 7; i++)
             {
+                //fix this where array is only filled with active grids
+                //lmao active grids dont work???
                 if(GridsCount[i]!=0)
                     UpdateGridCategory(i);
             }
@@ -68,7 +70,7 @@ namespace VoxelWater
                     countActive++;
                 } 
             }
-
+            Debug.Log(countActive);
             //parallel update
             /*
             int gridSizeFull = GridSize * GridSize * GridSize;
@@ -121,11 +123,13 @@ namespace VoxelWater
             NativeArray<int> cellsInfoCountArr = new NativeArray<int>(count, Allocator.TempJob);
             NativeArray<CellInfo> cellsInfoArr = new NativeArray<CellInfo>(gridSizeFullCI * count, Allocator.TempJob);
             NativeArray<GridInfo> gridInfoArr = new NativeArray<GridInfo>(count, Allocator.TempJob);
+
+            NativeArray<bool> collidersArr = new NativeArray<bool>(gridSizeFullCI * count, Allocator.TempJob);
             //copy all
             for (int j = 0; j < count; j++)
             {
                 Grid grid = GridsParallel[ind, j];
-                if (!GridsParallel[ind, j].GridInfo.Active)
+                if (GridsParallel[ind, j].GridInfo.Active == false)
                     continue;
                 
                 int index1 = j * gridSizeFull;
@@ -138,6 +142,7 @@ namespace VoxelWater
                 for (int k = 0; k < gridSizeFullCI; k++)
                 {
                     cellsInfoArr[k + index2] = grid.CellsInfo[k];
+                    collidersArr[k + index2] = grid.Colliders[k];
                 }
                 gridInfoArr[j] = grid.GridInfo;
             }
@@ -154,6 +159,8 @@ namespace VoxelWater
                 cellsInfoCountArr = cellsInfoCountArr,
                 cellsInfoArr = cellsInfoArr,
                 gridInfoArr = gridInfoArr,
+
+                collidersArr = collidersArr,
             };
 
             JobHandle dependency = new JobHandle();
@@ -172,7 +179,7 @@ namespace VoxelWater
             //last update
             for (int j = 0; j < count; j++)
             {
-                if (!GridsParallel[ind, j].GridInfo.Active)
+                if (GridsParallel[ind, j].GridInfo.Active == false)
                     continue;
                 GridsParallel[ind, j].CreateAndUpdateGridCells(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
                                         ref cellsInfo_listArr, ref cellsInfoArr);
@@ -187,6 +194,8 @@ namespace VoxelWater
             cellsInfoCountArr.Dispose();
             cellsInfoArr.Dispose();
             gridInfoArr.Dispose();
+
+            collidersArr.Dispose();
         }
 
         public Grid GetGrid(int x, int y, int z, int Xorg, int Yorg, int Zorg)

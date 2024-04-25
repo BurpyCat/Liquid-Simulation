@@ -9,17 +9,17 @@ namespace VoxelWater
     {
         static public CellInfo EmptyCell = new CellInfo() { State = CellState.None };
 
-        static public CellInfo SetState(CellInfo cellinfo)
+        static public CellInfo SetState(CellInfo cellinfo, bool[] colliders)
         {
             if (cellinfo.State == CellState.Create || cellinfo.State == CellState.Remove)
                 return cellinfo;
 
             cellinfo.OldState = cellinfo.State;
 
-            int[] sides = getSideColliders(cellinfo);
+            int[] sides = getSideColliders(cellinfo, colliders);
             int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
 
-            bool down = ((cellinfo.BottomState == CellState.None || cellinfo.BottomState == CellState.Empty) && !ColliderExists(cellinfo, 0, -1, 0));
+            bool down = ((cellinfo.BottomState == CellState.None || cellinfo.BottomState == CellState.Empty) && !ColliderExists(cellinfo, colliders, 0, -1, 0));
 
             //Cell emptyNeighbour = GetEmptyNeighbour(ref cellinfo, front, right, back, left, bottom);
             bool surroundedByEmpty = SurroundedByEmpty(cellinfo);
@@ -58,12 +58,12 @@ namespace VoxelWater
             return cellinfo;
         }
 
-        public static CellInfo ActivateStateInfo(CellInfo cellinfo, List<CellInfo> newCells)
+        public static CellInfo ActivateStateInfo(CellInfo cellinfo, List<CellInfo> newCells, bool[] colliders)
         {
             switch (cellinfo.State)
             {
                 case CellState.Flow:
-                    newCells.AddRange(Flow(ref cellinfo, cellinfo.Volume));
+                    newCells.AddRange(Flow(ref cellinfo, colliders, cellinfo.Volume));
                     break;
                 case CellState.Pressured:
                     Pressured(ref cellinfo);
@@ -96,7 +96,7 @@ namespace VoxelWater
                 //Remove();
                 //break;
                 case CellState.Create:
-                    newCells.AddRange(Create(ref cellinfo, 5));
+                    newCells.AddRange(Create(ref cellinfo, 5, colliders));
                     break;
                 case CellState.Empty:
                     Destroy();
@@ -105,9 +105,9 @@ namespace VoxelWater
             return cellinfo;
         }
 
-        static private List<CellInfo> Create(ref CellInfo cellinfo, int volume)
+        static private List<CellInfo> Create(ref CellInfo cellinfo, int volume, bool[] colliders)
         {
-            int[] sides = getSideColliders(cellinfo);
+            int[] sides = getSideColliders(cellinfo, colliders);
             int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
             if (sum == 0)
             {
@@ -116,17 +116,17 @@ namespace VoxelWater
             }
             else
             {
-                return Flow(ref cellinfo, volume);
+                return Flow(ref cellinfo, colliders, volume);
             }    
         }
 
-        static private List<CellInfo> Flow(ref CellInfo cellinfo, int cellVolume, bool decreaseVolume = true)
+        static private List<CellInfo> Flow(ref CellInfo cellinfo, bool[] colliders, int cellVolume, bool decreaseVolume = true)
         {
             List<CellInfo> newCells = new List<CellInfo>();
 
             //flow to sides
             //(front, right, back, left)
-            int[] sides = getSideColliders(cellinfo); //five array
+            int[] sides = getSideColliders(cellinfo, colliders); //five array
 
             int sum = sides[0] + sides[1] + sides[2] + sides[3] + sides[4];
             int volumeEach = 0;
@@ -258,33 +258,34 @@ namespace VoxelWater
                 cellinfo.LeftVolume += volume;
         }
 
-        static private int[] getSideColliders(CellInfo cellinfo)
+        static private int[] getSideColliders(CellInfo cellinfo, bool[] colliders)
         {
             int[] sides = { 0, 0, 0, 0, 0 };
             //front
-            if ((cellinfo.FrontState == CellState.None || cellinfo.FrontState == CellState.Empty) && !ColliderExists(cellinfo, 1, 0, 0))
+            if ((cellinfo.FrontState == CellState.None || cellinfo.FrontState == CellState.Empty) && !ColliderExists(cellinfo, colliders, 1, 0, 0))
                 sides[0] = 1;
             //right
-            if ((cellinfo.RightState == CellState.None || cellinfo.RightState == CellState.Empty) && !ColliderExists(cellinfo, 0, 0, -1))
+            if ((cellinfo.RightState == CellState.None || cellinfo.RightState == CellState.Empty) && !ColliderExists(cellinfo, colliders, 0, 0, -1))
                 sides[1] = 1;
             //back
-            if ((cellinfo.BackState == CellState.None || cellinfo.BackState == CellState.Empty) && !ColliderExists(cellinfo, -1, 0, 0))
+            if ((cellinfo.BackState == CellState.None || cellinfo.BackState == CellState.Empty) && !ColliderExists(cellinfo, colliders, -1, 0, 0))
                 sides[2] = 1;
             //left
-            if ((cellinfo.LeftState == CellState.None || cellinfo.LeftState == CellState.Empty) && !ColliderExists(cellinfo, 0, 0, 1))
+            if ((cellinfo.LeftState == CellState.None || cellinfo.LeftState == CellState.Empty) && !ColliderExists(cellinfo, colliders, 0, 0, 1))
                 sides[3] = 1;
             //bottom
-            if ((cellinfo.BottomState == CellState.None || cellinfo.BottomState == CellState.Empty) && !ColliderExists(cellinfo, 0, -1, 0))
+            if ((cellinfo.BottomState == CellState.None || cellinfo.BottomState == CellState.Empty) && !ColliderExists(cellinfo, colliders, 0, -1, 0))
                 sides[4] = 1;
 
             return sides;
         }
 
-        static private bool ColliderExists(CellInfo cellinfo, float x, float y, float z)
+        static private bool ColliderExists(CellInfo cellinfo, bool[] colliders, float x, float y, float z)
         {
             Vector3 currentPosition = new Vector3(cellinfo.X, cellinfo.Y, cellinfo.Z);
             Vector3 checkDirection = new Vector3(x, y, z);
 
+            return CellInfoUtility.Get(cellinfo.Xgrid + 1+(int)x, cellinfo.Ygrid + 1+ (int)y, cellinfo.Zgrid + 1+ (int)z, cellinfo.GridSizeCI, colliders);
             //RaycastHit[] colliders = Physics.SphereCastAll(currentPosition, 0.25f, checkDirection, 1.20f);
 
             //if (colliders.Length > 0)

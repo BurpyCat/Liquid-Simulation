@@ -36,7 +36,7 @@ namespace VoxelWater
 
     public class Grid : MonoBehaviour
     {
-        private List<Cell> Cells_list;
+        public List<Cell> Cells_list;
         public Cell[,,] Cells;
 
         //cellinfo
@@ -69,8 +69,13 @@ namespace VoxelWater
         //(GridManagerSize - 1) /2
         public int GridOffset = 50;
 
+        public int newCellsPUBLIC = 0;
+        public int updatedCellsPUBLIC = 0;
 
         public bool first = false;
+
+        //colliders
+        public bool[] Colliders;
 
         void Awake()
         {
@@ -115,6 +120,8 @@ namespace VoxelWater
             GridInfo.OffsetCI = OffsetCI;
             GridInfo.Num = CalcGridNumber();
             GridInfo.Active = true;
+
+            Colliders = GridUtility.GenerateColliders(this);
         }
 
         private int CalcGridNumber()
@@ -146,7 +153,7 @@ namespace VoxelWater
             UpdateNeighborCellInfo(CellsInfo);
             UpdateCellInfo(CellsInfo_list, CellsInfoCount, CellsInfo, GridInfo);
         }
-
+        /*
         public static void UpdateGridCellState(int ind, ref CellInfo[] newCellsArr, ref int[] newCellsCountArr, ref CellInfo[] updatedCellsArr, ref int[] updatedCellsCountArr,
                                         ref CellInfo[] cellsInfo_listArr, int[] cellsInfoCountArr, ref CellInfo[] cellsInfoArr, GridInfo[] gridInfoArr)
         {
@@ -211,7 +218,7 @@ namespace VoxelWater
             CellInfoUtility.InjectCellInfoArray(i, ref cellsInfoArr, fullGridSizeCI, cellsInfo, fullGridSizeCI);
         }
 
-
+        */
 
         public void CreateAndUpdateGridCells(int ind, ref CellInfo[] newCellsArr, ref int[] newCellsCountArr, ref CellInfo[] updatedCellsArr, ref int[] updatedCellsCountArr,
                                         ref CellInfo[] cellsInfo_listArr, ref CellInfo[] cellsInfoArr)
@@ -264,7 +271,14 @@ namespace VoxelWater
             UpdateNeighborCellObjects(CellsInfo);
             //active check
             if (newCellsCount == 0 && updatedCellsCount == 0)
+            {
                 GridInfo.Active = false;
+                UnityEngine.Debug.Log("false");
+            }
+            newCellsPUBLIC = newCellsCount;
+            updatedCellsPUBLIC = updatedCellsCount;
+
+
         }
 
         private void CreateNewCells(CellInfo[] newCells, int count)
@@ -316,9 +330,14 @@ namespace VoxelWater
 
             if (cellObj != null)
             {
-                cellObj.Cellinfo = CellInfoUtility.Get(x, y, z,GridSizeCI, cells);
-                //set to active
-                cellObj.Grid.GridInfo.Active = true;
+                CellInfo cellinfo = CellInfoUtility.Get(x, y, z, GridSizeCI, cells);
+                if(cellinfo != cellObj.Cellinfo)
+                {
+                    cellObj.Cellinfo = CellInfoUtility.Get(x, y, z, GridSizeCI, cells);
+                    //set to active
+                    cellObj.Grid.GridInfo.Active = true;
+                }
+                
             }
         }
 
@@ -397,17 +416,20 @@ namespace VoxelWater
                 this.PutIntoInfoGrid(cellScript);
             //grid.UpdateNeighboursInfo(cellScript);
             //GridUtility.UpdateNeighboursInfo(cellScript.Cellinfo, CellsInfo, grid.GridInfo);
+            //cellScript.FillCellInfo(grid, x, y, z);
 
             return cellScript;
         }
 
         private Cell CreateCellObject(float x, float y, float z, int volume)
         {
+            //maybe can optimize?
             GameObject newCell = Instantiate(Cube, transform);
             newCell.transform.position = new Vector3(x, y, z);
             Cell cellScript = newCell.GetComponent<Cell>();
 
             cellScript.Initiate();
+            cellScript.FillCellInfo(this, x, y, z);
             cellScript.Cellinfo.Volume = volume;
 
             return cellScript;
