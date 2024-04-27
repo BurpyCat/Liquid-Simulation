@@ -218,12 +218,12 @@ namespace VoxelWater
         
         private bool CheckIfSurrounded()
         {
-            if(Cellinfo.TopState != CellState.Empty && Cellinfo.TopState != CellState.None &&
-               Cellinfo.BottomState != CellState.Empty && Cellinfo.BottomState != CellState.None &&
-               Cellinfo.RightState != CellState.Empty && Cellinfo.RightState != CellState.None &&
-               Cellinfo.LeftState != CellState.Empty && Cellinfo.LeftState != CellState.None &&
-               Cellinfo.FrontState != CellState.Empty && Cellinfo.FrontState != CellState.None &&
-               Cellinfo.BackState != CellState.Empty && Cellinfo.BackState != CellState.None)
+            if(Cellinfo.TopState != CellState.Empty && Cellinfo.TopState != CellState.None && Cellinfo.TopState != CellState.Merge &&
+               Cellinfo.BottomState != CellState.Empty && Cellinfo.BottomState != CellState.None && Cellinfo.BottomState != CellState.Merge &&
+               Cellinfo.RightState != CellState.Empty && Cellinfo.RightState != CellState.None && Cellinfo.RightState != CellState.Merge &&
+               Cellinfo.LeftState != CellState.Empty && Cellinfo.LeftState != CellState.None && Cellinfo.LeftState != CellState.Merge &&
+               Cellinfo.FrontState != CellState.Empty && Cellinfo.FrontState != CellState.None && Cellinfo.FrontState != CellState.Merge &&
+               Cellinfo.BackState != CellState.Empty && Cellinfo.BackState != CellState.None && Cellinfo.BackState != CellState.Merge)
             { 
                 return true; 
             }

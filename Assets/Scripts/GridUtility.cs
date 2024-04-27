@@ -25,19 +25,30 @@ namespace VoxelWater
 
                 //fix
                 //check if states activation is needed
-                //if (newCell.OldState == newCell.State &&
-                //(newCell.State == CellState.Still || newCell.State == CellState.Empty))
-                //{
-                //    UpdateInfoGrid(newCell, cells, gridInfo);
-                //    cellsList[i] = newCell;
-                //    continue;
-                //}
+
+                if (newCell.OldState == newCell.State &&
+                (newCell.State == CellState.Still || newCell.State == CellState.Empty))
+                {
+                    UpdateNeighboursInfo(newCell, cells, gridInfo);
+                    UpdateInfoGrid(newCell, cells, gridInfo);
+                    cellsList[i] = newCell;
+                    updatedCells[updatedCount] = newCell;
+                    updatedCount++;
+                    continue;
+                }
                 
                 //activate state
                 newCell = CellUtility.ActivateStateInfo(newCell, newCellsTemp, colliders);
                 //check if any updating is needed
+                //this also has bugs
                 if (newCell == cellsList[i] && newCellsTemp.Count == 0)
                 {
+                    UpdateNeighboursInfo(newCell, cells, gridInfo);
+                    UpdateInfoGrid(newCell, cells, gridInfo);
+                    cellsList[i] = newCell;
+                    //updatedCells[updatedCount] = newCell;
+                    //updatedCount++;
+                    
                     continue;
                 }
 
