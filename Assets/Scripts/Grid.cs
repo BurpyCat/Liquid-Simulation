@@ -87,7 +87,7 @@ namespace VoxelWater
             CellsInfo_list = new CellInfo[GridInfo.GridSize * GridInfo.GridSize * GridInfo.GridSize];
             CellsInfoCount = 0;
 
-            Colliders = GridUtility.GenerateColliders(GridInfo);
+            Colliders = GridUtility.GenerateCollidersOptimized(GridInfo);
         }
 
         private int CalcGridNumber()
@@ -177,7 +177,7 @@ namespace VoxelWater
                 //update through manager in case the cell is in another grid
                 CellInfo cellGrid = Manager.GetCell(x, y, z, GridInfo.X, GridInfo.Y, GridInfo.Z).Cellinfo;
 
-                if (cell != cellGrid)
+                if (cellCI != cellGrid)
                 {
                     UpdateCellObject(cellCI);
                     updatedCount++;

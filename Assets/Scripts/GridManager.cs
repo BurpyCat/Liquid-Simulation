@@ -156,7 +156,7 @@ namespace VoxelWater
                     countActive++;
                 }
             }
-            Debug.Log(countActive);
+            //Debug.Log(countActive);
 
             if (countActive == 0)
                 return;

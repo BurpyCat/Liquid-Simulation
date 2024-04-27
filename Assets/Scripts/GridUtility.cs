@@ -234,6 +234,58 @@ namespace VoxelWater
             CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, 0, -1), x, y, z-1, size, colliders);
         }
 
+        static public bool[] GenerateCollidersOptimized(GridInfo grid)
+        {
+            //true 0,0,0 point of a grid
+            int x0 = (grid.X * grid.GridSize) - grid.Offset;
+            int y0 = (grid.Y * grid.GridSize) - grid.Offset;
+            int z0 = (grid.Z * grid.GridSize) - grid.Offset;
+            bool[] colliders = new bool[grid.GridSizeCI * grid.GridSizeCI * grid.GridSizeCI];
+            bool[,,] checkedArr = new bool[grid.GridSizeCI,grid.GridSizeCI,grid.GridSizeCI];
+
+            for (int x = 0; x < grid.GridSize; x++)
+                for (int y = 0; y < grid.GridSize; y++)
+                    for (int z = 0; z < grid.GridSize; z++)
+                    {
+                        CheckEveryDirectionCollidersOptimized(colliders, checkedArr, grid.GridSizeCI, x + 1, y + 1, z + 1, x0 + x, y0 + y, z0 + z);
+                    }
+            return colliders;
+        }
+
+        static private void CheckEveryDirectionCollidersOptimized(bool[] colliders, bool[,,] checkedArr, int size, int x, int y, int z, float xpos, float ypos, float zpos)
+        {
+            if (!checkedArr[x + 1,y,z])
+            {
+                CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 1, 0, 0), x + 1, y, z, size, colliders);
+                checkedArr[x + 1,y,z]= true;
+            }
+            if (!checkedArr[x - 1, y, z])
+            {
+                CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, -1, 0, 0), x - 1, y, z, size, colliders);
+                checkedArr[x - 1, y, z] = true;
+            }
+            if (!checkedArr[x, y+1, z])
+            {
+                CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, 1, 0), x, y + 1, z, size, colliders);
+                checkedArr[x, y+1, z] = true;
+            }
+            if (!checkedArr[x, y-1, z])
+            {
+                CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, -1, 0), x, y - 1, z, size, colliders);
+                checkedArr[x, y-1, z] = true;
+            }
+            if (!checkedArr[x, y, z+1])
+            {
+                CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, 0, 1), x, y, z + 1, size, colliders);
+                checkedArr[x, y, z+1] = true;
+            }
+            if (!checkedArr[x, y, z-1])
+            {
+                CellInfoUtility.Put(ColliderExists(xpos, ypos, zpos, 0, 0, -1), x, y, z - 1, size, colliders);
+                checkedArr[x, y, z-1] = true;
+            }         
+        }
+
         static private bool ColliderExists(float x, float y, float z, float xdir, float ydir, float zdir)
         {
             Vector3 currentPosition = new Vector3(x, y, z);

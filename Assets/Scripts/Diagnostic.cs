@@ -53,7 +53,7 @@ public class Diagnostic : MonoBehaviour
 
         cellCountCsv += CellCount.ToString() + ",";
 
-        Debug.Log("Frame Time: " + frameTimeMs.ToString("F2") + " ms | Total Elapsed Time: " + totalElapsedTime.ToString("F2") + " s | Stopwatch: "+ timeTaken.TotalMilliseconds.ToString() + " CellCount: " +CellCount.ToString());
+        //Debug.Log("Frame Time: " + frameTimeMs.ToString("F2") + " ms | Total Elapsed Time: " + totalElapsedTime.ToString("F2") + " s | Stopwatch: "+ timeTaken.TotalMilliseconds.ToString() + " CellCount: " +CellCount.ToString());
 
         timer.Restart();
         timer.Start();
