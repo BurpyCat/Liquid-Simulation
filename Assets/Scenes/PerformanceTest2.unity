@@ -1310,6 +1310,7 @@ MonoBehaviour:
   GridSize: 3
   GridOffset: 75
   GridManagerSize: 151
+  Diagnostics: {fileID: 0}
 --- !u!1 &799920929
 GameObject:
   m_ObjectHideFlags: 0
@@ -2138,7 +2139,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34a33a669eb872644abb4ca61e3e754b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  filename: 3new.csv
+  filename: 3first.csv
   CellCount: 0
   QuitTime: 999
   stopWithCount: 1

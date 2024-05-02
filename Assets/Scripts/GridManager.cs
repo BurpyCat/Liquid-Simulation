@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
@@ -23,6 +25,9 @@ namespace VoxelWater
         //nelyginis
         public int GridManagerSize = 101;
 
+        private Stopwatch timer;
+        public Diagnostic Diagnostics;
+
         void Awake()
         {
             Grids = new Grid[GridManagerSize, GridManagerSize, GridManagerSize];
@@ -30,6 +35,10 @@ namespace VoxelWater
             GridsCount = new int[7];
             GridsList = new List<Grid>();
             GridOffset = (GridManagerSize - 1) / 2;
+            if (Diagnostics == null)
+            {
+                Diagnostics = GameObject.Find("Diagnostic").GetComponent<Diagnostic>();
+            }
         }
 
         private void Update()
@@ -39,67 +48,76 @@ namespace VoxelWater
 
         private void UpdateGridsParallel()
         {
+            //timer = new Stopwatch();
             for (int i = 0; i < 7; i++)
             {
-                //fix this where array is only filled with active grids
                 if(GridsCount[i]!=0)
-                    UpdateGridCategoryOptimized(i);
+                    UpdateGridCategoryOptimizedDiagnostic(i);
             }
+            //Diagnostics.ProcessTimer(timer);
         }
 
-        private void UpdateGridCategory(int ind)
+        private void UpdateGridCategoryOptimizedDiagnostic(int ind)
         {
+            
+
             int count = GridsCount[ind];
             int countActive = 0;
             //first update
+            //timer.Start();
             for (int j = 0; j < count; j++)
             {
-                if(GridsParallel[ind, j].GridInfo.Active)
+                if (GridsParallel[ind, j].GridInfo.Active)
                 {
                     GridsParallel[ind, j].UpdateGridCellsInfo();
                     countActive++;
-                } 
+                }
             }
-            Debug.Log(countActive);
-            
+            //timer.Stop();
+            //Debug.Log(countActive);
+
             if (countActive == 0)
                 return;
-
+            //timer.Start();
             int gridSizeFull = GridSize * GridSize * GridSize;
             int gridSizeFullCI = (GridSize + 2) * (GridSize + 2) * (GridSize + 2);
-            NativeArray<CellInfo> newCellsArr = new NativeArray<CellInfo>(gridSizeFull * count, Allocator.TempJob);
-            NativeArray<int> newCellsCountArr = new NativeArray<int>(count, Allocator.TempJob);
-            NativeArray<CellInfo> updatedCellsArr = new NativeArray<CellInfo>(gridSizeFull * count, Allocator.TempJob);
-            NativeArray<int> updatedCellsCountArr = new NativeArray<int>(count, Allocator.TempJob);
+            NativeArray<CellInfo> newCellsArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
+            NativeArray<int> newCellsCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
+            NativeArray<CellInfo> updatedCellsArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
+            NativeArray<int> updatedCellsCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
 
-            NativeArray<CellInfo> cellsInfo_listArr = new NativeArray<CellInfo>(gridSizeFull * count, Allocator.TempJob);
-            NativeArray<int> cellsInfoCountArr = new NativeArray<int>(count, Allocator.TempJob);
-            NativeArray<CellInfo> cellsInfoArr = new NativeArray<CellInfo>(gridSizeFullCI * count, Allocator.TempJob);
-            NativeArray<GridInfo> gridInfoArr = new NativeArray<GridInfo>(count, Allocator.TempJob);
+            NativeArray<CellInfo> cellsInfo_listArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
+            NativeArray<int> cellsInfoCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
+            NativeArray<CellInfo> cellsInfoArr = new NativeArray<CellInfo>(gridSizeFullCI * countActive, Allocator.TempJob);
+            NativeArray<GridInfo> gridInfoArr = new NativeArray<GridInfo>(countActive, Allocator.TempJob);
 
-            NativeArray<bool> collidersArr = new NativeArray<bool>(gridSizeFullCI * count, Allocator.TempJob);
+            NativeArray<bool> collidersArr = new NativeArray<bool>(gridSizeFullCI * countActive, Allocator.TempJob);
             //copy all
+            int activeIndex = 0;
             for (int j = 0; j < count; j++)
             {
                 Grid grid = GridsParallel[ind, j];
-                if (GridsParallel[ind, j].GridInfo.Active == false)
+                if (grid.GridInfo.Active == false)
+                {
                     continue;
-                
-                int index1 = j * gridSizeFull;
-                cellsInfoCountArr[j] = grid.CellsInfoCount;
-                for (int k = 0; k < cellsInfoCountArr[j]; k++)
+                }
+
+                int index1 = activeIndex * gridSizeFull;
+                cellsInfoCountArr[activeIndex] = grid.CellsInfoCount;
+                for (int k = 0; k < cellsInfoCountArr[activeIndex]; k++)
                 {
                     cellsInfo_listArr[k + index1] = grid.CellsInfo_list[k];
                 }
-                int index2 = j * gridSizeFullCI;
+                int index2 = activeIndex * gridSizeFullCI;
                 for (int k = 0; k < gridSizeFullCI; k++)
                 {
                     cellsInfoArr[k + index2] = grid.CellsInfo[k];
                     collidersArr[k + index2] = grid.Colliders[k];
                 }
-                gridInfoArr[j] = grid.GridInfo;
+                gridInfoArr[activeIndex] = grid.GridInfo;
+                activeIndex++;
             }
-            
+
             UpdateGridsParallel update = new UpdateGridsParallel
             {
                 newCellsArr = newCellsArr,
@@ -117,19 +135,23 @@ namespace VoxelWater
 
             JobHandle dependency = new JobHandle();
             JobHandle scheduledependency = update.Schedule(0, dependency);
-            JobHandle scheduleparalleljob = update.ScheduleParallel(count, 1, scheduledependency);
+            JobHandle scheduleparalleljob = update.ScheduleParallel(countActive, 1, scheduledependency);
 
             scheduleparalleljob.Complete();
+
             
+            //timer.Start();
             //last update
+            activeIndex = 0;
             for (int j = 0; j < count; j++)
             {
                 if (GridsParallel[ind, j].GridInfo.Active == false)
                     continue;
-                GridsParallel[ind, j].CreateAndUpdateGridCells(j, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
+                GridsParallel[ind, j].CreateAndUpdateGridCells(activeIndex, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
                                         ref cellsInfo_listArr, ref cellsInfoArr);
+                activeIndex++;
             }
-
+            //timer.Stop();
             newCellsArr.Dispose();
             newCellsCountArr.Dispose();
             updatedCellsArr.Dispose();

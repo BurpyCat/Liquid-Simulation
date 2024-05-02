@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using Unity.Collections;
+using System.Diagnostics;
 
 namespace VoxelWater
 {
@@ -105,6 +106,43 @@ namespace VoxelWater
             UpdateCellInfo(CellsInfo_list, CellsInfoCount, CellsInfo, GridInfo);
         }
 
+        public void CreateAndUpdateGridCells(Stopwatch timer, int ind, ref NativeArray<CellInfo> newCellsArr, ref NativeArray<int> newCellsCountArr, ref NativeArray<CellInfo> updatedCellsArr, ref NativeArray<int> updatedCellsCountArr,
+                                        ref NativeArray<CellInfo> cellsInfo_listArr, ref NativeArray<CellInfo> cellsInfoArr)
+        {
+            int fullGridSize = GridInfo.GridSize * GridInfo.GridSize * GridInfo.GridSize;
+            int fullGridSizeCI = GridInfo.GridSizeCI * GridInfo.GridSizeCI * GridInfo.GridSizeCI;
+
+            //copy cellsinfo list and the other
+            CellsInfo_list = CellInfoUtility.ExtractCellInfoArray(ind, cellsInfo_listArr, fullGridSize, fullGridSize);
+            CellsInfo = CellInfoUtility.ExtractCellInfoArray(ind, cellsInfoArr, fullGridSizeCI, fullGridSizeCI);
+
+            //extract new and updated cells
+            int newCellsCount = newCellsCountArr[ind];
+            CellInfo[] newCells = CellInfoUtility.ExtractCellInfoArray(ind, newCellsArr, fullGridSize, newCellsCount);
+
+            int updatedCellsCount = updatedCellsCountArr[ind];
+            CellInfo[] updatedCells = CellInfoUtility.ExtractCellInfoArray(ind, updatedCellsArr, fullGridSize, updatedCellsCount);
+
+            
+            //create all new cells in environment
+            CreateNewCells(newCells, newCellsCount);
+            
+            timer.Start();
+            //update all cell objects
+            int updated = UpdateCellObjectsInt(updatedCells, updatedCellsCount, CellsInfo, GridInfo);
+            //update neighboring cells 
+            UpdateNeighborCellObjects(CellsInfo);
+            timer.Stop();
+            //active check
+            if (newCellsCount == 0 && updated == 0)
+            {
+                GridInfo.Active = false;
+                //Debug.Log($"FALSE x={GridInfo.X}, y={GridInfo.Y}, z={GridInfo.Z}");
+            }
+            //Debug.Log($"update x={GridInfo.X}, y={GridInfo.Y}, z={GridInfo.Z}");
+            //Debug.Log($"update new={newCellsCount}, update={updatedCellsCount}");
+        }
+
         public void CreateAndUpdateGridCells(int ind, ref NativeArray<CellInfo> newCellsArr, ref NativeArray<int> newCellsCountArr, ref NativeArray<CellInfo> updatedCellsArr, ref NativeArray<int> updatedCellsCountArr,
                                         ref NativeArray<CellInfo> cellsInfo_listArr, ref NativeArray<CellInfo> cellsInfoArr)
         {
@@ -165,21 +203,25 @@ namespace VoxelWater
             for (int i = 0; i < count; i++)
             {
                 var cell = cellList[i];
-                int xCI = cell.GetGridXCI(gridInfo);
-                int yCI = cell.GetGridYCI(gridInfo);
-                int zCI = cell.GetGridZCI(gridInfo);
+                //int xCI = cell.GetGridXCI(gridInfo);
+                //int yCI = cell.GetGridYCI(gridInfo);
+                //int zCI = cell.GetGridZCI(gridInfo);
 
                 int x = cell.GetGridX(GridInfo);
                 int y = cell.GetGridY(GridInfo);
                 int z = cell.GetGridZ(GridInfo);
 
-                CellInfo cellCI = CellInfoUtility.Get(xCI, yCI, zCI, GridInfo.GridSizeCI, cells);
+                //CellInfo cellCI = CellInfoUtility.Get(xCI, yCI, zCI, GridInfo.GridSizeCI, cells);
                 //update through manager in case the cell is in another grid
-                CellInfo cellGrid = Manager.GetCell(x, y, z, GridInfo.X, GridInfo.Y, GridInfo.Z).Cellinfo;
+                //CellInfo cellGrid = Manager.GetCell(x, y, z, GridInfo.X, GridInfo.Y, GridInfo.Z).Cellinfo;
+                Cell cellObj = Manager.GetCell(x, y, z, GridInfo.X, GridInfo.Y, GridInfo.Z);
+                
 
-                if (cellCI != cellGrid)
+                if (cell != cellObj.Cellinfo)
                 {
-                    UpdateCellObject(cellCI);
+                    cellObj.Cellinfo = cell;
+                    cellObj.RenderCell();
+                    //UpdateCellObject(cellCI);
                     updatedCount++;
                 }
             }
@@ -203,12 +245,12 @@ namespace VoxelWater
 
         private void UpdateCellObject(int x, int y, int z, CellInfo[] cells)
         {
-            Cell cellObj = Manager.GetCell(x - GridInfo.OffsetCI, y - GridInfo.OffsetCI, z - GridInfo.OffsetCI, GridInfo.X, GridInfo.Y, GridInfo.Z);
-
-            if (cellObj != null)
+            
+            CellInfo cellinfo = CellInfoUtility.Get(x, y, z, GridInfo.GridSizeCI, cells);
+            if (cellinfo.State != CellState.None)
             {
-                CellInfo cellinfo = CellInfoUtility.Get(x, y, z, GridInfo.GridSizeCI, cells);
-                if(cellinfo != cellObj.Cellinfo)
+                Cell cellObj = Manager.GetCell(x - GridInfo.OffsetCI, y - GridInfo.OffsetCI, z - GridInfo.OffsetCI, GridInfo.X, GridInfo.Y, GridInfo.Z);
+                if (cellObj!= null && cellinfo != cellObj.Cellinfo)
                 {
                     cellObj.Cellinfo = cellinfo;
                     //set to active

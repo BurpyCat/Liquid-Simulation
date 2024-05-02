@@ -38,6 +38,11 @@ public class Diagnostic : MonoBehaviour
 
     void Update()
     {
+        CellCountTimer();
+    }
+
+    void CellCountTimer()
+    {
         timer.Stop();
 
         TimeSpan timeTaken = timer.Elapsed;
@@ -57,6 +62,31 @@ public class Diagnostic : MonoBehaviour
 
         timer.Restart();
         timer.Start();
+
+        if (totalElapsedTime >= QuitTime || (stopWithCount && CellCount >= maxCount))
+        {
+            Debug.Log("quit");
+            EditorApplication.isPlaying = false;
+        }
+    }
+
+    public void ProcessTimer(Stopwatch timer1)
+    {
+        TimeSpan timeTaken = timer1.Elapsed;
+
+
+        float frameTimeMs = Time.deltaTime * 1000f;
+        //Debug.Log(timeTaken.TotalMilliseconds.ToString());
+
+        totalElapsedTime = Time.time;
+
+        frameTimesCsv += timeTaken.TotalMilliseconds.ToString() + ",";
+
+        totalElapsedTimesCsv += totalElapsedTime.ToString("F2") + ",";
+
+        cellCountCsv += CellCount.ToString() + ",";
+
+        //Debug.Log("Frame Time: " + frameTimeMs.ToString("F2") + " ms | Total Elapsed Time: " + totalElapsedTime.ToString("F2") + " s | Stopwatch: "+ timeTaken.TotalMilliseconds.ToString() + " CellCount: " +CellCount.ToString());
 
         if (totalElapsedTime >= QuitTime || (stopWithCount && CellCount >= maxCount))
         {
