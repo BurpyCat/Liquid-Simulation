@@ -1,15 +1,23 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Jobs.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace VoxelWater
 {
     public class GridManager : MonoBehaviour
     {
-        GameObject FirstGrid;
-
         Grid[,,] Grids;
+        //public List<Grid> GridsList;
         public GameObject GridPrefab;
+
+        //for parallel work
+        public Grid[,] GridsParallel;
+        public int[] GridsCount;
+        
         //(GridSize -1 )/2
         //nelyginis
         public int GridSize = 21;
@@ -17,19 +25,142 @@ namespace VoxelWater
         public int GridOffset = 50;
         //nelyginis
         public int GridManagerSize = 101;
+        /*
+        private Stopwatch timer1;
+        private Stopwatch timer2;
+        public Diagnostic Diagnostics;
+        */
+        public int ThreadNum = 7;
 
         void Awake()
         {
+            UnityEngine.Debug.Log("threads"+JobsUtility.JobWorkerMaximumCount);
             Grids = new Grid[GridManagerSize, GridManagerSize, GridManagerSize];
+            GridsParallel = new Grid[7, (int)((GridManagerSize * GridManagerSize * GridManagerSize) / 7)];
+            GridsCount = new int[7];
+            //GridsList = new List<Grid>();
             GridOffset = (GridManagerSize - 1) / 2;
         }
-        // Start is called before the first frame update
-        void Start()
+
+        private void Update()
         {
-            //Grid grid = FirstGrid.GetComponent<Grid>();
-            //Grids[Offset, Offset, Offset] = grid;
+            UpdateGridsParallel();
         }
 
+        private void UpdateGridsParallel()
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                if(GridsCount[i]!=0)
+                    UpdateGridCategoryOptimizedDiagnostic(i);
+            }
+        }
+
+        private void UpdateGridCategoryOptimizedDiagnostic(int ind)
+        {
+            
+
+            int count = GridsCount[ind];
+            int countActive = 0;
+            //first update
+            for (int j = 0; j < count; j++)
+            {
+                if (GridsParallel[ind, j].GridInfo.Active)
+                {
+                    GridsParallel[ind, j].UpdateGridCellsInfo();
+                    countActive++;
+                }
+            }
+            //Debug.Log(countActive);
+
+            if (countActive == 0)
+                return;
+            int gridSizeFull = GridSize * GridSize * GridSize;
+            int gridSizeFullCI = (GridSize + 2) * (GridSize + 2) * (GridSize + 2);
+            NativeArray<CellInfo> newCellsArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
+            NativeArray<int> newCellsCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
+            NativeArray<CellInfo> updatedCellsArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
+            NativeArray<int> updatedCellsCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
+
+            NativeArray<CellInfo> cellsInfo_listArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
+            NativeArray<int> cellsInfoCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
+            NativeArray<CellInfo> cellsInfoArr = new NativeArray<CellInfo>(gridSizeFullCI * countActive, Allocator.TempJob);
+            NativeArray<GridInfo> gridInfoArr = new NativeArray<GridInfo>(countActive, Allocator.TempJob);
+
+            NativeArray<bool> collidersArr = new NativeArray<bool>(gridSizeFullCI * countActive, Allocator.TempJob);
+            
+            //copy all
+            int activeIndex = 0;
+            for (int j = 0; j < count; j++)
+            {
+                Grid grid = GridsParallel[ind, j];
+                if (grid.GridInfo.Active == false)
+                {
+                    continue;
+                }
+
+                int index1 = activeIndex * gridSizeFull;
+                cellsInfoCountArr[activeIndex] = grid.CellsInfoCount;
+                for (int k = 0; k < cellsInfoCountArr[activeIndex]; k++)
+                {
+                    cellsInfo_listArr[k + index1] = grid.CellsInfo_list[k];
+                }
+                int index2 = activeIndex * gridSizeFullCI;
+                for (int k = 0; k < gridSizeFullCI; k++)
+                {
+                    cellsInfoArr[k + index2] = grid.CellsInfo[k];
+                    collidersArr[k + index2] = grid.Colliders[k];
+                }
+                gridInfoArr[activeIndex] = grid.GridInfo;
+                activeIndex++;
+            }
+
+            UpdateGridsParallel update = new UpdateGridsParallel
+            {
+                newCellsArr = newCellsArr,
+                newCellsCountArr = newCellsCountArr,
+                updatedCellsArr = updatedCellsArr,
+                updatedCellsCountArr = updatedCellsCountArr,
+
+                cellsInfo_listArr = cellsInfo_listArr,
+                cellsInfoCountArr = cellsInfoCountArr,
+                cellsInfoArr = cellsInfoArr,
+                gridInfoArr = gridInfoArr,
+
+                collidersArr = collidersArr,
+            };
+            
+            JobHandle dependency = new JobHandle();
+            JobHandle scheduledependency = update.Schedule(0, dependency);
+            int batch = 1;
+            if (countActive > ThreadNum)
+                batch = countActive / ThreadNum;
+            JobHandle scheduleparalleljob = update.ScheduleParallel(countActive, batch, scheduledependency);
+
+            scheduleparalleljob.Complete();
+
+            //last update
+            activeIndex = 0;
+            for (int j = 0; j < count; j++)
+            {
+                if (GridsParallel[ind, j].GridInfo.Active == false)
+                    continue;
+                GridsParallel[ind, j].CreateAndUpdateGridCells(activeIndex, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
+                                        ref cellsInfo_listArr, ref cellsInfoArr);
+                activeIndex++;
+            }
+            newCellsArr.Dispose();
+            newCellsCountArr.Dispose();
+            updatedCellsArr.Dispose();
+            updatedCellsCountArr.Dispose();
+
+            cellsInfo_listArr.Dispose();
+            cellsInfoCountArr.Dispose();
+            cellsInfoArr.Dispose();
+            gridInfoArr.Dispose();
+
+            collidersArr.Dispose();
+        }
 
         public Grid GetGrid(int x, int y, int z, int Xorg, int Yorg, int Zorg)
         {
@@ -82,7 +213,7 @@ namespace VoxelWater
             return null;
         }
 
-        public Cell UpdateNeighbours(int x, int y, int z, int Xorg, int Yorg, int Zorg)
+        public Cell GetCell(int x, int y, int z, int Xorg, int Yorg, int Zorg)
         {
             int X = Xorg + GridOffset;
             int Y = Yorg + GridOffset;
@@ -140,34 +271,29 @@ namespace VoxelWater
                 int newz = z + GridSize;
                 return Grids[X, Y, Z - 1].Cells[x, y, newz];
             }
-            //else
-            //    return Grids[X, Y, Z].Cells[x, y, z];
-            return null;
+            return Grids[X, Y, Z].Cells[x, y, z];
         }
 
-        public void CreateGrid(int X, int Y, int Z)
+        public void CreateGrid(int x, int y, int z)
         {
             GameObject newGrid = Instantiate(GridPrefab, transform);
-            newGrid.transform.position = new Vector3(X, Y, Z);
+            newGrid.transform.position = new Vector3(x, y, z);
 
             Grid gridScript = newGrid.GetComponent<Grid>();
-            gridScript.Initiate(X, Y, Z);
+            gridScript.Initiate(x, y, z);
 
-            PutIntoGridManager(X, Y, Z, gridScript);
-
-            //Grids[X, Y, Z] = gridScript;
+            PutIntoGridManager(x, y, z, gridScript);
         }
 
-        public void PutIntoGridManager(int X, int Y, int Z, Grid grid)
+        public void PutIntoGridManager(int x, int y, int z, Grid grid)
         {
             //expansion?
-            Grids[X+GridOffset, Y + GridOffset, Z + GridOffset] = grid;
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
-
+            Grids[x+GridOffset, y + GridOffset, z + GridOffset] = grid;
+            //list
+            //GridsList.Add(grid);
+            int num = grid.GridInfo.Num;
+            GridsParallel[num, GridsCount[num]] = grid;
+            GridsCount[num]++;
         }
     }
 }
