@@ -25,10 +25,11 @@ namespace VoxelWater
         public int GridOffset = 50;
         //nelyginis
         public int GridManagerSize = 101;
-
+        /*
         private Stopwatch timer1;
         private Stopwatch timer2;
         public Diagnostic Diagnostics;
+        */
         public int ThreadNum = 7;
 
         void Awake()
@@ -39,10 +40,6 @@ namespace VoxelWater
             GridsCount = new int[7];
             //GridsList = new List<Grid>();
             GridOffset = (GridManagerSize - 1) / 2;
-            if (Diagnostics == null)
-            {
-                Diagnostics = GameObject.Find("Diagnostic").GetComponent<Diagnostic>();
-            }
         }
 
         private void Update()
@@ -52,15 +49,11 @@ namespace VoxelWater
 
         private void UpdateGridsParallel()
         {
-            timer1 = new Stopwatch();
-            timer2 = new Stopwatch();
             for (int i = 0; i < 7; i++)
             {
                 if(GridsCount[i]!=0)
                     UpdateGridCategoryOptimizedDiagnostic(i);
             }
-            Diagnostics.ProcessTimer1(timer1);
-            Diagnostics.ProcessTimer2(timer2);
         }
 
         private void UpdateGridCategoryOptimizedDiagnostic(int ind)
@@ -70,7 +63,6 @@ namespace VoxelWater
             int count = GridsCount[ind];
             int countActive = 0;
             //first update
-            timer1.Start();
             for (int j = 0; j < count; j++)
             {
                 if (GridsParallel[ind, j].GridInfo.Active)
@@ -79,12 +71,10 @@ namespace VoxelWater
                     countActive++;
                 }
             }
-            timer1.Stop();
             //Debug.Log(countActive);
 
             if (countActive == 0)
                 return;
-            timer2.Start();
             int gridSizeFull = GridSize * GridSize * GridSize;
             int gridSizeFullCI = (GridSize + 2) * (GridSize + 2) * (GridSize + 2);
             NativeArray<CellInfo> newCellsArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
@@ -148,9 +138,7 @@ namespace VoxelWater
             JobHandle scheduleparalleljob = update.ScheduleParallel(countActive, batch, scheduledependency);
 
             scheduleparalleljob.Complete();
-            timer2.Stop();
 
-            timer1.Start();
             //last update
             activeIndex = 0;
             for (int j = 0; j < count; j++)
@@ -161,8 +149,6 @@ namespace VoxelWater
                                         ref cellsInfo_listArr, ref cellsInfoArr);
                 activeIndex++;
             }
-            //timer.Stop();
-            timer1.Stop();
             newCellsArr.Dispose();
             newCellsCountArr.Dispose();
             updatedCellsArr.Dispose();

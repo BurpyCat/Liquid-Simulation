@@ -140,12 +140,13 @@ namespace VoxelWater
         public void Initiate()
         {
             //diagnostics
-            
+            /*
             if(Diagnostics == null)
             {
                 Diagnostics = GameObject.Find("Diagnostic").GetComponent<Diagnostic>();
                 Diagnostics.IncreaseCellCount();
             }
+            */
             
 
             if (GridObject != null)
