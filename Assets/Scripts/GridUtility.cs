@@ -25,7 +25,6 @@ namespace VoxelWater
 
                 //fix
                 //check if states activation is needed
-
                 if (newCell.OldState == newCell.State &&
                 (newCell.State == CellState.Still || newCell.State == CellState.Empty))
                 {
@@ -46,8 +45,8 @@ namespace VoxelWater
                     UpdateNeighboursInfo(newCell, cells, gridInfo);
                     UpdateInfoGrid(newCell, cells, gridInfo);
                     cellsList[i] = newCell;
-                    //updatedCells[updatedCount] = newCell;
-                    //updatedCount++;
+                    updatedCells[updatedCount] = newCell;
+                    updatedCount++;
                     
                     continue;
                 }

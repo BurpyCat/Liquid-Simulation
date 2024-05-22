@@ -27,11 +27,11 @@ namespace VoxelWater
         public int OffsetCI;
 
         public bool Active;
+        public int ActiveCount;
     }
 
     public class Grid : MonoBehaviour
     {
-        public List<Cell> Cells_list;
         public Cell[,,] Cells;
 
         //includes current cells
@@ -40,8 +40,6 @@ namespace VoxelWater
 
         //includes current cells AND neighbours
         public CellInfo[] CellsInfo;
-        //public int GridSizeCI;
-        //public int OffsetCI;
 
         public GridManager Manager;
         public GameObject Cube;
@@ -79,9 +77,9 @@ namespace VoxelWater
             GridInfo.OffsetCI = 1;
             GridInfo.Num = CalcGridNumber();
             GridInfo.Active = true;
+            GridInfo.ActiveCount = 0;
 
             Cells = new Cell[GridInfo.GridSize, GridInfo.GridSize, GridInfo.GridSize];
-            Cells_list = new List<Cell>();
 
             //cellinfo      
             CellsInfo = CellInfoUtility.Create(GridInfo.GridSizeCI);
@@ -104,43 +102,6 @@ namespace VoxelWater
         {
             UpdateNeighborCellInfo(CellsInfo);
             UpdateCellInfo(CellsInfo_list, CellsInfoCount, CellsInfo, GridInfo);
-        }
-
-        public void CreateAndUpdateGridCells(Stopwatch timer, int ind, ref NativeArray<CellInfo> newCellsArr, ref NativeArray<int> newCellsCountArr, ref NativeArray<CellInfo> updatedCellsArr, ref NativeArray<int> updatedCellsCountArr,
-                                        ref NativeArray<CellInfo> cellsInfo_listArr, ref NativeArray<CellInfo> cellsInfoArr)
-        {
-            int fullGridSize = GridInfo.GridSize * GridInfo.GridSize * GridInfo.GridSize;
-            int fullGridSizeCI = GridInfo.GridSizeCI * GridInfo.GridSizeCI * GridInfo.GridSizeCI;
-
-            //copy cellsinfo list and the other
-            CellsInfo_list = CellInfoUtility.ExtractCellInfoArray(ind, cellsInfo_listArr, fullGridSize, fullGridSize);
-            CellsInfo = CellInfoUtility.ExtractCellInfoArray(ind, cellsInfoArr, fullGridSizeCI, fullGridSizeCI);
-
-            //extract new and updated cells
-            int newCellsCount = newCellsCountArr[ind];
-            CellInfo[] newCells = CellInfoUtility.ExtractCellInfoArray(ind, newCellsArr, fullGridSize, newCellsCount);
-
-            int updatedCellsCount = updatedCellsCountArr[ind];
-            CellInfo[] updatedCells = CellInfoUtility.ExtractCellInfoArray(ind, updatedCellsArr, fullGridSize, updatedCellsCount);
-
-            
-            //create all new cells in environment
-            CreateNewCells(newCells, newCellsCount);
-            
-            timer.Start();
-            //update all cell objects
-            int updated = UpdateCellObjectsInt(updatedCells, updatedCellsCount, CellsInfo, GridInfo);
-            //update neighboring cells 
-            UpdateNeighborCellObjects(CellsInfo);
-            timer.Stop();
-            //active check
-            if (newCellsCount == 0 && updated == 0)
-            {
-                GridInfo.Active = false;
-                //Debug.Log($"FALSE x={GridInfo.X}, y={GridInfo.Y}, z={GridInfo.Z}");
-            }
-            //Debug.Log($"update x={GridInfo.X}, y={GridInfo.Y}, z={GridInfo.Z}");
-            //Debug.Log($"update new={newCellsCount}, update={updatedCellsCount}");
         }
 
         public void CreateAndUpdateGridCells(int ind, ref NativeArray<CellInfo> newCellsArr, ref NativeArray<int> newCellsCountArr, ref NativeArray<CellInfo> updatedCellsArr, ref NativeArray<int> updatedCellsCountArr,
@@ -169,11 +130,11 @@ namespace VoxelWater
             //active check
             if (newCellsCount == 0 && updated == 0)
             {
-                GridInfo.Active = false;
-                //Debug.Log($"FALSE x={GridInfo.X}, y={GridInfo.Y}, z={GridInfo.Z}");
+                //if (GridInfo.ActiveCount == 0)
+                    GridInfo.Active = false;
+                //else
+                //    GridInfo.ActiveCount++;
             }
-            //Debug.Log($"update x={GridInfo.X}, y={GridInfo.Y}, z={GridInfo.Z}");
-            //Debug.Log($"update new={newCellsCount}, update={updatedCellsCount}");
         }
 
         private void CreateNewCells(CellInfo[] newCells, int count)
@@ -255,7 +216,7 @@ namespace VoxelWater
                     cellObj.Cellinfo = cellinfo;
                     //set to active
                     cellObj.Grid.GridInfo.Active = true;
-                    //Debug.Log($"TRUE x={cellObj.Grid.GridInfo.X}, y={cellObj.Grid.GridInfo.Y}, z={cellObj.Grid.GridInfo.Z}");
+                    //cellObj.Grid.GridInfo.ActiveCount = 0;
                 }
             }
         }
@@ -340,6 +301,7 @@ namespace VoxelWater
             cellScript.Initiate();
             cellScript.FillCellInfo(GridInfo, x, y, z);
             cellScript.Cellinfo.Volume = volume;
+            cellScript.RenderCell();
 
             return cellScript;
         }
@@ -369,7 +331,6 @@ namespace VoxelWater
             int z = cell.Cellinfo.GetGridZ(GridInfo);
 
             Cells[x, y, z] = cell;
-            Cells_list.Add(cell);
 
             cell.Grid = this;
         }
