@@ -1,10 +1,62 @@
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace VoxelWater
 {  
     static public class GridUtility
     {
+        static public void UpdateGrid(GridInfo gridInfo, CellInfo[] cellsInfo_list, int cellsInfoCount, CellInfo[] cellsInfo, bool[] colliders, 
+                                      out CellInfo[] newCells, out int newCellsCount, out CellInfo[] updatedCells, out int updatedCellsCount)
+        {
+            /*
+            public int gridSizeFull;
+            public int gridSizeFullCI;
+            [NativeDisableParallelForRestriction] public NativeArray<CellInfo> newCellsArr;
+            [NativeDisableParallelForRestriction] public NativeArray<int> newCellsCountArr;
+            [NativeDisableParallelForRestriction] public NativeArray<CellInfo> updatedCellsArr;
+            [NativeDisableParallelForRestriction] public NativeArray<int> updatedCellsCountArr;
+
+            [NativeDisableParallelForRestriction] public NativeArray<CellInfo> cellsInfo_listArr;
+            [NativeDisableParallelForRestriction] public NativeArray<int> cellsInfoCountArr;
+            [NativeDisableParallelForRestriction] public NativeArray<CellInfo> cellsInfoArr;
+            [NativeDisableParallelForRestriction] public NativeArray<GridInfo> gridInfoArr;
+
+            [NativeDisableParallelForRestriction] public NativeArray<bool> collidersArr;
+            */
+
+            //copy from bigger arrays
+            //GridInfo gridInfo = gridInfoArr[i];
+            //if (!gridInfo.Active)
+            //    return;
+
+            int fullGridSize = gridInfo.GridSize * gridInfo.GridSize * gridInfo.GridSize;
+            int fullGridSizeCI = gridInfo.GridSizeCI * gridInfo.GridSizeCI * gridInfo.GridSizeCI;
+
+            //int cellsInfoCount = cellsInfoCountArr[i];
+            //CellInfo[] cellsInfo_list = CellInfoUtility.ExtractCellInfoArray(i, cellsInfo_listArr, fullGridSize, cellsInfoCount);
+            //CellInfo[] cellsInfo = CellInfoUtility.ExtractCellInfoArray(i, cellsInfoArr, fullGridSizeCI, fullGridSizeCI);
+
+            newCells = new CellInfo[fullGridSize];
+            newCellsCount = 0;
+            updatedCells = new CellInfo[fullGridSize];
+            updatedCellsCount = 0;
+
+            //bool[] colliders = CellInfoUtility.ExtractBoolArray(i, collidersArr, fullGridSizeCI, fullGridSizeCI);
+
+            GridUtility.UpdateCells(cellsInfo_list, cellsInfoCount, cellsInfo, gridInfo,
+                newCells, ref newCellsCount, updatedCells, ref updatedCellsCount, colliders);
+
+            //copy to bigger arrays
+            //CellInfoUtility.InjectCellInfoArray(i, ref newCellsArr, fullGridSize, newCells, newCellsCount);
+            //CellInfoUtility.InjectCellInfoArray(i, ref updatedCellsArr, fullGridSize, updatedCells, updatedCellsCount);
+
+            //CellInfoUtility.InjectCellInfoArray(i, ref cellsInfo_listArr, fullGridSize, cellsInfo_list, cellsInfoCount);
+            //CellInfoUtility.InjectCellInfoArray(i, ref cellsInfoArr, fullGridSizeCI, cellsInfo, fullGridSizeCI);
+            
+        }
+
         static public void UpdateCells(CellInfo[] cellsList, int count, CellInfo[] cells, GridInfo gridInfo, CellInfo[] newCells, ref int newCount, CellInfo[] updatedCells, ref int updatedCount, bool[] colliders)
         {
             for (int i = 0; i < count; i++)

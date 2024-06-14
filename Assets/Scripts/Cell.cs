@@ -105,7 +105,6 @@ namespace VoxelWater
         public CellInfo Cellinfo;
 
         //needed for the first cell
-        public GameObject GridObject;
 
         //special state enable
         public bool CreateWater = false;
@@ -124,11 +123,6 @@ namespace VoxelWater
 
         //diagnostic
         public Diagnostic Diagnostics;
-
-        private void Start()
-        {
-            Initiate();
-        }
 
         public bool Equals(Cell other)
         {
@@ -149,8 +143,6 @@ namespace VoxelWater
             */
             
 
-            if (GridObject != null)
-                Grid = GridObject.GetComponent<Grid>();
             Mesh = GetComponent<MeshRenderer>();
             RendererMaterial = GetComponent<Renderer>();
             Cellinfo.X = transform.position.x;

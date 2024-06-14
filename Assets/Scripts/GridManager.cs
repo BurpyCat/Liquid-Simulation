@@ -40,6 +40,8 @@ namespace VoxelWater
             GridsCount = new int[7];
             //GridsList = new List<Grid>();
             GridOffset = (GridManagerSize - 1) / 2;
+
+            //FindPlacedCells();
         }
 
         private void Update()
@@ -47,19 +49,68 @@ namespace VoxelWater
             UpdateGridsParallel();
         }
 
+        private void FindPlacedCells()
+        {
+            PlacedCell[] placedCellsScript = FindObjectsOfType(typeof(PlacedCell)) as PlacedCell[];
+            Vector3 center = FindPlacedCellsCenter(placedCellsScript).gameObject.transform.localPosition;
+            Grid grid = CreateGrid((int)center.x, (int)center.y, (int)center.z);
+            //grid.CreateCell((int)center.x, (int)center.y, (int)center.z, 1);
+        }
+
+        private PlacedCell FindPlacedCellsCenter(PlacedCell[] placedCells)
+        {
+            float sumX = 0;
+            float sumY = 0;
+            float sumZ = 0;
+            foreach(var cell in placedCells)
+            {
+                Vector3 position = cell.gameObject.transform.localPosition;
+                sumX += position.x;
+                sumY += position.y;
+                sumZ += position.z;
+            }
+            float x = sumX / placedCells.Length;
+            float y = sumY / placedCells.Length;
+            float z = sumZ / placedCells.Length;
+            Vector3 absolutePosition = new Vector3(x, y, z);
+
+            Vector3 centerPosition = Vector3.zero;
+            PlacedCell centerCell = null;
+            foreach (var cell in placedCells)
+            {
+                Vector3 position = cell.gameObject.transform.localPosition;
+                if (centerCell == null)
+                {
+                    centerPosition = cell.gameObject.transform.localPosition;
+                    centerCell = cell;
+                }
+                else if(PositionDifference(position,absolutePosition) < 
+                        PositionDifference(centerPosition, absolutePosition))
+                {
+                    centerPosition = cell.gameObject.transform.localPosition;
+                    centerCell = cell;
+                }
+            }
+
+            return centerCell;
+        }
+
+        private float PositionDifference(Vector3 pos1, Vector3 pos2)
+        {
+            return Math.Abs(pos1.x - pos2.x) + Math.Abs(pos1.y - pos2.y) + Math.Abs(pos1.z - pos2.z);
+        }
+
         private void UpdateGridsParallel()
         {
             for (int i = 0; i < 7; i++)
             {
-                if(GridsCount[i]!=0)
-                    UpdateGridCategoryOptimizedDiagnostic(i);
+                if (GridsCount[i] != 0)
+                    UpdateGridCategory(i);
             }
         }
 
-        private void UpdateGridCategoryOptimizedDiagnostic(int ind)
+        private void UpdateGridCategory(int ind)
         {
-            
-
             int count = GridsCount[ind];
             int countActive = 0;
             //first update
@@ -71,26 +122,10 @@ namespace VoxelWater
                     countActive++;
                 }
             }
-            //Debug.Log(countActive);
 
             if (countActive == 0)
                 return;
-            int gridSizeFull = GridSize * GridSize * GridSize;
-            int gridSizeFullCI = (GridSize + 2) * (GridSize + 2) * (GridSize + 2);
-            NativeArray<CellInfo> newCellsArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
-            NativeArray<int> newCellsCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
-            NativeArray<CellInfo> updatedCellsArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
-            NativeArray<int> updatedCellsCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
-
-            NativeArray<CellInfo> cellsInfo_listArr = new NativeArray<CellInfo>(gridSizeFull * countActive, Allocator.TempJob);
-            NativeArray<int> cellsInfoCountArr = new NativeArray<int>(countActive, Allocator.TempJob);
-            NativeArray<CellInfo> cellsInfoArr = new NativeArray<CellInfo>(gridSizeFullCI * countActive, Allocator.TempJob);
-            NativeArray<GridInfo> gridInfoArr = new NativeArray<GridInfo>(countActive, Allocator.TempJob);
-
-            NativeArray<bool> collidersArr = new NativeArray<bool>(gridSizeFullCI * countActive, Allocator.TempJob);
-            
-            //copy all
-            int activeIndex = 0;
+           
             for (int j = 0; j < count; j++)
             {
                 Grid grid = GridsParallel[ind, j];
@@ -98,68 +133,13 @@ namespace VoxelWater
                 {
                     continue;
                 }
+                GridUtility.UpdateGrid(grid.GridInfo, grid.CellsInfo_list, grid.CellsInfoCount, grid.CellsInfo, grid.Colliders,
+                                       out CellInfo[] newCells, out int newCellsCount, out CellInfo[] updatedCells, out int updatedCellsCount);
 
-                int index1 = activeIndex * gridSizeFull;
-                cellsInfoCountArr[activeIndex] = grid.CellsInfoCount;
-                for (int k = 0; k < cellsInfoCountArr[activeIndex]; k++)
-                {
-                    cellsInfo_listArr[k + index1] = grid.CellsInfo_list[k];
-                }
-                int index2 = activeIndex * gridSizeFullCI;
-                for (int k = 0; k < gridSizeFullCI; k++)
-                {
-                    cellsInfoArr[k + index2] = grid.CellsInfo[k];
-                    collidersArr[k + index2] = grid.Colliders[k];
-                }
-                gridInfoArr[activeIndex] = grid.GridInfo;
-                activeIndex++;
+                
+                GridsParallel[ind, j].CreateAndUpdateGridCells(grid.GridInfo, grid.CellsInfo_list, grid.CellsInfoCount, grid.CellsInfo, grid.Colliders,
+                                                          newCells,   newCellsCount,   updatedCells,  updatedCellsCount);
             }
-
-            UpdateGridsParallel update = new UpdateGridsParallel
-            {
-                newCellsArr = newCellsArr,
-                newCellsCountArr = newCellsCountArr,
-                updatedCellsArr = updatedCellsArr,
-                updatedCellsCountArr = updatedCellsCountArr,
-
-                cellsInfo_listArr = cellsInfo_listArr,
-                cellsInfoCountArr = cellsInfoCountArr,
-                cellsInfoArr = cellsInfoArr,
-                gridInfoArr = gridInfoArr,
-
-                collidersArr = collidersArr,
-            };
-            
-            JobHandle dependency = new JobHandle();
-            JobHandle scheduledependency = update.Schedule(0, dependency);
-            int batch = 1;
-            if (countActive > ThreadNum)
-                batch = countActive / ThreadNum;
-            JobHandle scheduleparalleljob = update.ScheduleParallel(countActive, batch, scheduledependency);
-
-            scheduleparalleljob.Complete();
-
-            //last update
-            activeIndex = 0;
-            for (int j = 0; j < count; j++)
-            {
-                if (GridsParallel[ind, j].GridInfo.Active == false)
-                    continue;
-                GridsParallel[ind, j].CreateAndUpdateGridCells(activeIndex, ref newCellsArr, ref newCellsCountArr, ref updatedCellsArr, ref updatedCellsCountArr,
-                                        ref cellsInfo_listArr, ref cellsInfoArr);
-                activeIndex++;
-            }
-            newCellsArr.Dispose();
-            newCellsCountArr.Dispose();
-            updatedCellsArr.Dispose();
-            updatedCellsCountArr.Dispose();
-
-            cellsInfo_listArr.Dispose();
-            cellsInfoCountArr.Dispose();
-            cellsInfoArr.Dispose();
-            gridInfoArr.Dispose();
-
-            collidersArr.Dispose();
         }
 
         public Grid GetGrid(int x, int y, int z, int Xorg, int Yorg, int Zorg)
@@ -274,7 +254,7 @@ namespace VoxelWater
             return Grids[X, Y, Z].Cells[x, y, z];
         }
 
-        public void CreateGrid(int x, int y, int z)
+        public Grid CreateGrid(int x, int y, int z)
         {
             GameObject newGrid = Instantiate(GridPrefab, transform);
             newGrid.transform.position = new Vector3(x, y, z);
@@ -283,6 +263,8 @@ namespace VoxelWater
             gridScript.Initiate(x, y, z);
 
             PutIntoGridManager(x, y, z, gridScript);
+
+            return gridScript;
         }
 
         public void PutIntoGridManager(int x, int y, int z, Grid grid)
